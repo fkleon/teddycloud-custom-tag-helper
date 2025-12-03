@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
-import { API_URL } from '../config/apiConfig';
+import { tafLibraryAPI } from '../api/client';
 
 export const TAFLibraryContext = createContext();
 
@@ -13,7 +13,6 @@ export function TAFLibraryProvider({ children }) {
   const loadTafFiles = useCallback(async (force = false) => {
     // Skip if already loaded and not forcing refresh
     if (tafFiles.length > 0 && !force && lastUpdated) {
-      console.log('Using cached TAF files');
       return;
     }
 
@@ -21,25 +20,22 @@ export function TAFLibraryProvider({ children }) {
     setError(null);
 
     try {
-      console.log('Fetching TAF library from API...');
-      const response = await fetch(`${API_URL}/api/taf-library/`);
+      const { data } = await tafLibraryAPI.getAll();
 
-      if (!response.ok) {
-        throw new Error(`Failed to load TAF library: ${response.statusText}`);
+      // Handle API error response
+      if (data.success === false && data.error) {
+        throw new Error(data.error);
       }
 
-      const data = await response.json();
       setTafFiles(data.taf_files || []);
       setStats({
         total: data.total_count || 0,
         linked: data.linked_count || 0,
-        orphaned: data.orphaned_count || 0
+        orphaned: data.orphaned_count || 0,
       });
       setLastUpdated(Date.now());
-      console.log(`Loaded ${data.taf_files?.length || 0} TAF files`);
     } catch (err) {
-      console.error('Failed to load TAF files:', err);
-      setError(err.message);
+      setError(err.userMessage || err.message);
     } finally {
       setLoading(false);
     }
@@ -51,7 +47,6 @@ export function TAFLibraryProvider({ children }) {
   }, []);
 
   const refresh = useCallback(() => {
-    console.log('Forcing TAF library refresh...');
     return loadTafFiles(true);
   }, [loadTafFiles]);
 
@@ -62,7 +57,7 @@ export function TAFLibraryProvider({ children }) {
       loading,
       error,
       refresh,
-      lastUpdated
+      lastUpdated,
     }}>
       {children}
     </TAFLibraryContext.Provider>

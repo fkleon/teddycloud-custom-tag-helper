@@ -113,20 +113,23 @@ def load_config(config_path: str = "/config/config.yaml") -> Settings:
                 if yaml_config:
                     settings_dict = yaml_config
 
-                    # Migrate old config structure (from SMB era)
+                    # Legacy cleanup - migrate old config structure (pre-v1.1)
+                    # Removes deprecated SMB configuration and old volume structure
                     if "volumes" in settings_dict:
                         volumes = settings_dict["volumes"]
-                        # Remove old fields
+                        # Remove old fields from multi-path volume structure
                         for old_field in ["enabled", "config_path", "library_path", "custom_img_path", "custom_img_json_path"]:
                             if old_field in volumes:
                                 del volumes[old_field]
+                                logger.debug(f"Removed deprecated volumes.{old_field} from config")
                         # Ensure data_path exists
                         if "data_path" not in volumes:
                             volumes["data_path"] = "/data"
 
-                    # Remove SMB section
+                    # Legacy cleanup - remove deprecated SMB section (SMB support removed in v1.1)
                     if "smb" in settings_dict:
                         del settings_dict["smb"]
+                        logger.info("Removed deprecated SMB configuration section from config")
 
                     logger.info(f"Loaded configuration from {config_path}")
         except Exception as e:

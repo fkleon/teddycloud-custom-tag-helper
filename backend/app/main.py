@@ -2,6 +2,7 @@
 Custom Tag Helper - Main FastAPI Application
 """
 
+import os
 import logging
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,13 +29,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration
+# CORS configuration - restrict to specific origins for security
+# Set ALLOWED_ORIGINS env var for custom origins (comma-separated)
+# Default allows same-origin only (empty list means browser enforces same-origin)
+_allowed_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+CORS_ORIGINS = [origin.strip() for origin in _allowed_origins.split(",") if origin.strip()] if _allowed_origins else []
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS if CORS_ORIGINS else ["*"],  # Empty means same-origin; "*" for dev only
+    allow_credentials=False,  # Don't send credentials cross-origin
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Include routers
@@ -64,7 +70,7 @@ async def status(settings: Settings = Depends(get_settings)):
     Check status of all services
 
     Returns:
-        Status of TeddyCloud connection, Library API, Config, and SMB
+        Status of TeddyCloud connection, Library API, and Config
     """
     # Check TeddyCloud connection
     teddycloud_connected = False
@@ -146,27 +152,23 @@ async def update_config(config_data: dict):
         with open(config_file) as f:
             config = yaml.safe_load(f)
 
-        # Migrate old config structure to new one
+        # Legacy cleanup - migrate old config structure to new simplified one (pre-v1.1)
         if "volumes" in config:
             volumes = config["volumes"]
-            # Remove old SMB-era fields
-            if "enabled" in volumes:
-                del volumes["enabled"]
-            if "config_path" in volumes:
-                del volumes["config_path"]
-            if "library_path" in volumes:
-                del volumes["library_path"]
-            if "custom_img_path" in volumes:
-                del volumes["custom_img_path"]
-            if "custom_img_json_path" in volumes:
-                del volumes["custom_img_json_path"]
+            # Remove deprecated multi-path volume fields
+            deprecated_fields = ["enabled", "config_path", "library_path", "custom_img_path", "custom_img_json_path"]
+            for field in deprecated_fields:
+                if field in volumes:
+                    del volumes[field]
+                    logger.debug(f"Removed deprecated volumes.{field} from config during save")
             # Ensure data_path exists
             if "data_path" not in volumes:
                 volumes["data_path"] = "/data"
 
-        # Remove SMB section entirely
+        # Legacy cleanup - remove deprecated SMB configuration (SMB support removed in v1.1)
         if "smb" in config:
             del config["smb"]
+            logger.info("Removed deprecated SMB section from config during save")
 
         # Update config with new values
         if "teddycloud" in config_data:

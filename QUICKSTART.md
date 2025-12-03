@@ -4,7 +4,7 @@
 
 - Docker and Docker Compose installed
 - TeddyCloud running and accessible
-- Access to TeddyCloud data directory (via SMB or volume mount)
+- Access to TeddyCloud data directory (via volume mount)
 
 ## Installation
 
@@ -27,19 +27,17 @@ Edit `.env` with your settings:
 ```env
 TEDDYCLOUD_URL=http://docker
 TEDDYCLOUD_DATA_PATH=/path/to/your/teddycloud/data
-SMB_HOST=docker
-SMB_SHARE=docker-appdata
-SMB_PATH=/teddycloud
 ```
 
 **Note:** On Synology NAS, the path might be: `/volume1/docker/teddycloud`
+
+**For network shares:** Mount the share on your host first (e.g., using SMB/NFS), then set `TEDDYCLOUD_DATA_PATH` to the mount point.
 
 ### 3. Review config.yaml
 
 The default `config.yaml` is pre-configured for:
 - TeddyCloud at `http://docker`
-- SMB share at `smb://docker/docker-appdata/teddycloud`
-- Anonymous SMB access (change `username`/`password` if needed)
+- Data path at `/data` (mapped via environment variable)
 
 ### 4. Start the Application
 
@@ -103,24 +101,6 @@ curl http://localhost:8080  # adjust port
 
 Update `TEDDYCLOUD_URL` in .env if needed.
 
-### "SMB Connection Failed"
-
-1. **Try anonymous first** (leave username/password empty)
-2. **Check SMB share is accessible**:
-   ```bash
-   # On Mac:
-   open smb://docker/docker-appdata
-
-   # On Windows:
-   \\docker\docker-appdata
-   ```
-3. **Add credentials** in config.yaml if required:
-   ```yaml
-   smb:
-     username: "your_username"
-     password: "your_password"
-   ```
-
 ### "TAF Parsing Returns Zeros"
 
 The TAF format may vary. If auto-parsing fails:
@@ -149,26 +129,6 @@ docker-compose exec backend ls -la /data/www/custom_img/
 Should list your uploaded images.
 
 ## Advanced Configuration
-
-### Using Local Filesystem Instead of SMB
-
-If TeddyCloud data is on the same host:
-
-1. **Disable SMB** in config.yaml:
-   ```yaml
-   smb:
-     enabled: false
-   ```
-
-2. **Set correct path** in .env:
-   ```env
-   TEDDYCLOUD_DATA_PATH=/actual/path/to/teddycloud/data
-   ```
-
-3. **Restart**:
-   ```bash
-   docker-compose restart
-   ```
 
 ### Custom Port Configuration
 

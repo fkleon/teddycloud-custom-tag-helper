@@ -106,7 +106,7 @@ async def list_cover_images(settings: Settings = Depends(get_settings)):
 
         images = []
         for img_file in custom_img_path.iterdir():
-            # Skip hidden files, macOS metadata files, and SMB temp files
+            # Skip hidden files and macOS metadata files
             if img_file.name.startswith('.'):
                 continue
 

@@ -7,9 +7,69 @@ import logging
 import httpx
 import asyncio
 from typing import List, Dict, Optional
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 
 logger = logging.getLogger(__name__)
+
+# SECURITY: Whitelist of allowed domains for image downloads (SSRF protection)
+ALLOWED_IMAGE_DOMAINS = {
+    # Cover Art Archive (MusicBrainz)
+    "coverartarchive.org",
+    "archive.org",
+    "ia800.us.archive.org",
+    "ia801.us.archive.org",
+    "ia802.us.archive.org",
+    "ia803.us.archive.org",
+    "ia804.us.archive.org",
+    "ia805.us.archive.org",
+    "ia806.us.archive.org",
+    "ia807.us.archive.org",
+    "ia808.us.archive.org",
+    "ia809.us.archive.org",
+    # iTunes/Apple
+    "is1-ssl.mzstatic.com",
+    "is2-ssl.mzstatic.com",
+    "is3-ssl.mzstatic.com",
+    "is4-ssl.mzstatic.com",
+    "is5-ssl.mzstatic.com",
+    "a1.mzstatic.com",
+    "a2.mzstatic.com",
+    "a3.mzstatic.com",
+    "a4.mzstatic.com",
+    "a5.mzstatic.com",
+    "mzstatic.com",
+}
+
+
+def is_safe_image_url(url: str) -> bool:
+    """
+    Check if URL is from a trusted domain for image downloads
+
+    Args:
+        url: URL to validate
+
+    Returns:
+        True if URL is safe to fetch
+    """
+    try:
+        parsed = urlparse(url)
+
+        # Only allow HTTP(S)
+        if parsed.scheme not in ("http", "https"):
+            return False
+
+        # Check domain against whitelist
+        hostname = parsed.hostname or ""
+        hostname_lower = hostname.lower()
+
+        # Check exact match or subdomain match
+        for allowed in ALLOWED_IMAGE_DOMAINS:
+            if hostname_lower == allowed or hostname_lower.endswith("." + allowed):
+                return True
+
+        return False
+    except Exception:
+        return False
 
 
 class MetadataSearchService:
@@ -232,7 +292,7 @@ class MetadataSearchService:
 
     async def download_image(self, image_url: str) -> Optional[bytes]:
         """
-        Download an image from URL
+        Download an image from URL with SSRF protection
 
         Args:
             image_url: URL of the image
@@ -241,15 +301,32 @@ class MetadataSearchService:
             Image bytes or None
         """
         try:
+            # SECURITY: Validate URL is from trusted domain (SSRF protection)
+            if not is_safe_image_url(image_url):
+                logger.warning(f"Rejected untrusted image URL: {image_url}")
+                return None
+
             async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
                 headers = {"User-Agent": self.user_agent}
                 response = await client.get(image_url, headers=headers)
                 response.raise_for_status()
 
+                # SECURITY: Verify final URL after redirects is also safe
+                final_url = str(response.url)
+                if not is_safe_image_url(final_url):
+                    logger.warning(f"Rejected redirect to untrusted URL: {final_url}")
+                    return None
+
                 # Validate it's an image
                 content_type = response.headers.get("content-type", "")
                 if not content_type.startswith("image/"):
                     logger.warning(f"URL is not an image: {content_type}")
+                    return None
+
+                # SECURITY: Limit image size to prevent DoS (10MB max)
+                max_size = 10 * 1024 * 1024
+                if len(response.content) > max_size:
+                    logger.warning(f"Image too large: {len(response.content)} bytes (max {max_size})")
                     return None
 
                 logger.info(f"Downloaded image: {len(response.content)} bytes")

@@ -34,8 +34,22 @@ async def get_image(path: str, settings: Settings = Depends(get_settings)):
         if path.startswith("/"):
             path = path[1:]
 
-        # Try to serve from local filesystem first
-        image_path = Path(settings.volumes.data_path) / path
+        # SECURITY: Validate path to prevent directory traversal attacks
+        # Reject any path containing ".." or absolute paths
+        if ".." in path or path.startswith("/"):
+            logger.warning(f"Rejected path traversal attempt: {path}")
+            raise HTTPException(status_code=403, detail="Invalid path")
+
+        # Build and resolve the path, then verify it's within data_path
+        data_path = Path(settings.volumes.data_path).resolve()
+        image_path = (data_path / path).resolve()
+
+        # SECURITY: Ensure resolved path is still within data_path (prevents symlink attacks)
+        try:
+            image_path.relative_to(data_path)
+        except ValueError:
+            logger.warning(f"Path escape attempt blocked: {path} resolved to {image_path}")
+            raise HTTPException(status_code=403, detail="Access denied")
 
         if image_path.exists() and image_path.is_file():
                 logger.info(f"Serving image from local filesystem: {image_path}")

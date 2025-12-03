@@ -44,6 +44,9 @@ class RFIDTagsResponse(BaseModel):
     unconfigured_count: int
     unassigned_count: int
     assigned_count: int
+    # Error handling - allows frontend to distinguish between empty data and error
+    error: Optional[str] = None
+    success: bool = True
 
 
 @router.get("/", response_model=RFIDTagsResponse)
@@ -117,13 +120,15 @@ async def get_rfid_tags(settings: Settings = Depends(get_settings)):
 
     except Exception as e:
         logger.error(f"Failed to get RFID tags: {e}")
-        # Return empty response on error instead of raising exception
+        # Return error response with details for frontend debugging
         return RFIDTagsResponse(
             tags=[],
             total_count=0,
             unconfigured_count=0,
             unassigned_count=0,
-            assigned_count=0
+            assigned_count=0,
+            success=False,
+            error=f"Failed to load RFID tags: {str(e)}"
         )
 
 
@@ -354,6 +359,9 @@ async def get_box_rfid_tags(box_id: str, settings: Settings = Depends(get_settin
     Returns:
         List of RFID tags for this box
     """
+    import asyncio
+    from collections import defaultdict
+
     try:
         # Use TeddyCloud's getTagIndex API to get all tags for this box
         from ..services.teddycloud_client import TeddyCloudClient
@@ -380,20 +388,34 @@ async def get_box_rfid_tags(box_id: str, settings: Settings = Depends(get_settin
                 assigned_count=0
             )
 
-        # Build lookup of tonies by model number AND by TAF source path
+        all_tonies = tonies_custom_data + tonies_official_data
+
+        # PERFORMANCE: Build ALL lookup maps ONCE before processing
         tonie_by_model = {}
+        tonie_by_audio_id = {}  # O(1) lookup by audio_id
+        tonie_by_hash = {}  # O(1) lookup by hash
         tonie_by_source = {}  # Maps "lib://filename.taf" -> tonie
 
-        all_tonies = tonies_custom_data + tonies_official_data
         for tonie_data in all_tonies:
             model = tonie_data.get('model')
             if model:
                 tonie_by_model[model] = tonie_data
 
-            # Also index by pic path if it looks like a TAF reference
-            # Custom tonies often have pic like "/library/own/pics/cover_xxx.jpg"
-            # But we need to match against source like "lib://Disney - Pocahontas.taf"
-            # So we'll build this index after we scan TAF files
+            # Build audio_id lookup (handle both list and single values)
+            audio_ids = tonie_data.get('audio_id', [])
+            if not isinstance(audio_ids, list):
+                audio_ids = [audio_ids] if audio_ids else []
+            for aid in audio_ids:
+                if aid:
+                    tonie_by_audio_id[str(aid)] = tonie_data
+
+            # Build hash lookup
+            hashes = tonie_data.get('hash', [])
+            if not isinstance(hashes, list):
+                hashes = [hashes] if hashes else []
+            for h in hashes:
+                if h:
+                    tonie_by_hash[h.lower()] = tonie_data
 
         # Load TAF library to map source paths to tonies via audio_id/hash
         if settings.volumes.data_path:
@@ -402,53 +424,60 @@ async def get_box_rfid_tags(box_id: str, settings: Settings = Depends(get_settin
                 scanner = VolumeScanner(settings.volumes.data_path)
                 taf_files = scanner.scan_taf_files_recursive()
 
-                # Get TAF metadata from TeddyCloud API
+                # PERFORMANCE: Group TAF files by directory to minimize API calls
+                taf_by_dir = defaultdict(list)
                 for taf_file in taf_files:
                     taf_name = taf_file.get('name', '')
+                    if "/" in taf_name:
+                        directory = "/".join(taf_name.split("/")[:-1])
+                    else:
+                        directory = ""
+                    taf_by_dir[directory].append(taf_file)
 
-                    # For each TAF file, find which tonie matches its audio_id or hash
-                    # This requires getting the TAF header from TeddyCloud
-                    try:
-                        # Get directory and filename
-                        if "/" in taf_name:
-                            directory = "/".join(taf_name.split("/")[:-1])
-                            filename = taf_name.split("/")[-1]
-                        else:
-                            directory = ""
-                            filename = taf_name
+                # PERFORMANCE: Fetch all directories in parallel using asyncio.gather
+                directories = list(taf_by_dir.keys())
+                if directories:
+                    file_indices = await asyncio.gather(
+                        *[client.get_file_index(d) for d in directories],
+                        return_exceptions=True
+                    )
 
-                        file_index = await client.get_file_index(directory)
-                        for api_file in file_index.get("files", []):
-                            if api_file.get("name") == filename:
-                                taf_header = api_file.get("tafHeader", {})
-                                audio_id = taf_header.get("audioId")
-                                hash_value = taf_header.get("sha1Hash", "").lower()
+                    # Process results and build tonie_by_source mapping
+                    for directory, file_index in zip(directories, file_indices):
+                        if isinstance(file_index, Exception):
+                            logger.debug(f"Failed to get file index for {directory}: {file_index}")
+                            continue
 
-                                # Find tonie that matches this TAF
-                                for tonie_data in all_tonies:
-                                    tonie_audio_ids = tonie_data.get('audio_id', [])
-                                    tonie_hashes = tonie_data.get('hash', [])
+                        # Build filename -> tafHeader lookup for this directory
+                        api_files_by_name = {
+                            f.get("name"): f.get("tafHeader", {})
+                            for f in file_index.get("files", [])
+                        }
 
-                                    # Convert to lists if needed
-                                    if not isinstance(tonie_audio_ids, list):
-                                        tonie_audio_ids = [tonie_audio_ids] if tonie_audio_ids else []
-                                    if not isinstance(tonie_hashes, list):
-                                        tonie_hashes = [tonie_hashes] if tonie_hashes else []
+                        # Process each TAF file in this directory
+                        for taf_file in taf_by_dir[directory]:
+                            taf_name = taf_file.get('name', '')
+                            filename = taf_name.split("/")[-1] if "/" in taf_name else taf_name
 
-                                    # Check if audio_id or hash matches
-                                    audio_match = audio_id and any(str(aid) == str(audio_id) for aid in tonie_audio_ids)
-                                    hash_match = hash_value and any(h.lower() == hash_value for h in tonie_hashes)
+                            taf_header = api_files_by_name.get(filename, {})
+                            if not taf_header:
+                                continue
 
-                                    if audio_match or hash_match:
-                                        # Map source path to this tonie
-                                        source_key = f"lib://{taf_name}"
-                                        tonie_by_source[source_key] = tonie_data
-                                        logger.debug(f"Mapped source {source_key} to tonie {tonie_data.get('model')}")
-                                        break
-                                break
-                    except Exception as e:
-                        logger.debug(f"Could not get TAF header for {taf_name}: {e}")
-                        continue
+                            audio_id = taf_header.get("audioId")
+                            hash_value = taf_header.get("sha1Hash", "").lower()
+
+                            # PERFORMANCE: O(1) lookup instead of O(n) loop
+                            matched_tonie = None
+                            if audio_id:
+                                matched_tonie = tonie_by_audio_id.get(str(audio_id))
+                            if not matched_tonie and hash_value:
+                                matched_tonie = tonie_by_hash.get(hash_value)
+
+                            if matched_tonie:
+                                source_key = f"lib://{taf_name}"
+                                tonie_by_source[source_key] = matched_tonie
+                                logger.debug(f"Mapped source {source_key} to tonie {matched_tonie.get('model')}")
+
             except Exception as e:
                 logger.warning(f"Could not build TAF source mapping: {e}")
 
@@ -562,5 +591,7 @@ async def get_box_rfid_tags(box_id: str, settings: Settings = Depends(get_settin
             total_count=0,
             unconfigured_count=0,
             unassigned_count=0,
-            assigned_count=0
+            assigned_count=0,
+            success=False,
+            error=f"Failed to load RFID tags for box {box_id}: {str(e)}"
         )

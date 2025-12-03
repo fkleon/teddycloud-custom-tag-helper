@@ -7,6 +7,8 @@ services:
     environment:
       # TeddyCloud connection (configure in setup wizard after first start)
       - TEDDYCLOUD_URL=${TEDDYCLOUD_URL:-http://docker}
+      # CORS allowed origins (comma-separated) - leave empty for same-origin only
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
     volumes:
       # TeddyCloud data volume (REQUIRES WRITE ACCESS for covers and tonies.json)
       # Set TEDDYCLOUD_DATA_PATH in Portainer environment variables
@@ -16,11 +18,29 @@ services:
       # Config directory - creates /docker/appdata/teddycloud-tag-helper/ for easy access
       # Set CONFIG_PATH to customize location (default: ./data)
       - ${CONFIG_PATH:-./data}:/config
-
-      # Note: If using SMB/network share instead, configure in setup wizard
     restart: unless-stopped
     networks:
       - tag-helper-network
+    # Health check for container monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    # Resource limits for stability
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   tag-helper-network:

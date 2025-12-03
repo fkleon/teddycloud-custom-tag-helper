@@ -41,6 +41,7 @@ class ToniesManager:
     def get_all_tonies(self) -> List[TonieModel]:
         """
         Read all custom tonies from tonies.custom.json
+        Auto-generates sequential 'no' values for entries missing this field
 
         Returns:
             List of TonieModel objects
@@ -49,6 +50,12 @@ class ToniesManager:
             # Read from local filesystem
             with open(self.tonies_file, 'r') as f:
                 data = json.load(f)
+
+            # Auto-generate 'no' field for entries that are missing it
+            for i, item in enumerate(data):
+                if 'no' not in item or item['no'] is None:
+                    item['no'] = str(i)
+                    logger.debug(f"Auto-generated 'no' field: {i} for tonie at index {i}")
 
             tonies = [TonieModel(**item) for item in data]
             logger.info(f"Loaded {len(tonies)} custom tonies")

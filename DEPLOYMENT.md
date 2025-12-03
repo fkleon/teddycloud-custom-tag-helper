@@ -6,7 +6,7 @@ This guide explains how to deploy TeddyCloud Custom Tag Helper to different envi
 
 - Docker and Docker Compose installed
 - TeddyCloud instance running and accessible
-- Access to TeddyCloud data directory (via SMB or local filesystem)
+- Access to TeddyCloud data directory (via local filesystem or network mount)
 
 ## Initial Setup
 
@@ -36,20 +36,8 @@ teddycloud:
   api_base: "/api"
   timeout: 30
 
-smb:
-  enabled: true
-  host: "your-smb-host"
-  share: "your-share-name"
-  base_path: "/teddycloud"
-  username: "your-username"  # Leave empty for anonymous access
-  password: "your-password"  # Leave empty for anonymous access
-
 volumes:
-  enabled: true
-  config_path: "/data/config"
-  custom_img_path: "/data/www/custom_img"  # Filesystem path for images
-  custom_img_json_path: "/www/custom_img"  # Path used in tonie JSON
-  library_path: "/data/library"
+  data_path: "/data"  # Single path - subdirectories derived automatically
 
 app:
   auto_parse_taf: true
@@ -73,9 +61,9 @@ docker-compose up -d
 # You'll need to copy data from your TeddyCloud instance
 ```
 
-#### Option B: Direct Path Mount
+#### Option B: Direct Path Mount (Recommended)
 
-If TeddyCloud data is on the same host, edit `docker-compose.yml`:
+If TeddyCloud data is on the same host (or network-mounted), edit `docker-compose.yml`:
 
 ```yaml
 volumes:
@@ -83,19 +71,7 @@ volumes:
   - /path/to/your/teddycloud/data:/data  # Replace with actual path
 ```
 
-#### Option C: SMB Access Only
-
-Keep the named volume but rely on SMB for all file operations:
-
-```yaml
-# In config.yaml
-smb:
-  enabled: true
-  host: "your-nas-or-server"
-  share: "teddycloud-data"
-  username: "your-username"
-  password: "your-password"
-```
+**For network shares (SMB/NFS)**: Mount the share on your host first, then use the mount point as the path above.
 
 ## Deployment Scenarios
 
@@ -232,10 +208,7 @@ You can override config.yaml settings with environment variables:
 ```bash
 # In .env file
 TEDDYCLOUD_URL=http://teddycloud.local
-SMB_HOST=nas.local
-SMB_SHARE=teddycloud
-SMB_USERNAME=your-user
-SMB_PASSWORD=your-pass
+TEDDYCLOUD_DATA_PATH=/path/to/teddycloud/data
 ```
 
 ## Security Considerations
@@ -245,16 +218,12 @@ SMB_PASSWORD=your-pass
 chmod 600 config.yaml .env
 ```
 
-2. **Use Strong Passwords**:
-   - Change default SMB credentials
-   - Use unique passwords
-
-3. **Network Security**:
+2. **Network Security**:
    - Run on trusted network only
    - Consider VPN for remote access
    - Use reverse proxy with SSL/TLS
 
-4. **Regular Updates**:
+3. **Regular Updates**:
 ```bash
 cd /path/to/teddycloud-tonie-manager
 git pull
@@ -273,15 +242,6 @@ docker-compose exec backend curl http://your-teddycloud-host/api/toniesCustomJso
 
 # Check logs
 docker-compose logs backend | grep -i error
-```
-
-### SMB Connection Issues
-
-```bash
-# Test SMB access
-docker-compose exec backend ls -la /data/library
-
-# Check credentials in config.yaml
 ```
 
 ### Volume Not Populating

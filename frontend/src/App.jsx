@@ -3,6 +3,7 @@ import { TranslationProvider } from './context/TranslationContext'
 import { TAFLibraryProvider } from './context/TAFLibraryContext'
 import Dashboard from './pages/Dashboard'
 import SetupWizard from './components/SetupWizard'
+import ErrorBoundary from './components/ErrorBoundary'
 import { setupAPI } from './api/client'
 
 function App() {
@@ -18,7 +19,6 @@ function App() {
       const response = await setupAPI.checkStatus()
       setSetupRequired(response.data.setup_required)
     } catch (error) {
-      console.error('Failed to check setup status:', error)
       // If check fails, assume setup is needed
       setSetupRequired(true)
     }
@@ -50,13 +50,17 @@ function App() {
   }
 
   return (
-    <TranslationProvider>
-      <TAFLibraryProvider>
-        <div className="min-h-screen bg-gray-100">
-          <Dashboard />
-        </div>
-      </TAFLibraryProvider>
-    </TranslationProvider>
+    <ErrorBoundary fallbackMessage="The application encountered an error. Please refresh the page.">
+      <TranslationProvider>
+        <TAFLibraryProvider>
+          <div className="min-h-screen bg-gray-100">
+            <ErrorBoundary fallbackMessage="Failed to load dashboard. Please try again.">
+              <Dashboard />
+            </ErrorBoundary>
+          </div>
+        </TAFLibraryProvider>
+      </TranslationProvider>
+    </ErrorBoundary>
   )
 }
 

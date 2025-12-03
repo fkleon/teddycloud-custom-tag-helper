@@ -11,7 +11,7 @@ class TonieModel(BaseModel):
     Custom Tonie metadata structure
     Matches the tonies.custom.json format
     """
-    no: str = Field(description="Sequential custom tag identifier")
+    no: str = Field(default="0", description="Sequential custom tag identifier (auto-generated if missing)")
     model: str = Field(description="RFID tag identifier (e.g., E0:04:03:50:0E:F4:D8:EA)")
     audio_id: List[str] = Field(description="Custom audio identifier array")
     hash: List[str] = Field(description="Content hash verification array")
@@ -136,3 +136,6 @@ class TAFLibraryResponse(BaseModel):
     total_count: int = Field(description="Total number of TAF files")
     linked_count: int = Field(description="Number of TAF files linked to tonies")
     orphaned_count: int = Field(description="Number of TAF files not linked to any tonie")
+    # Error handling - allows frontend to distinguish between empty data and error
+    error: Optional[str] = Field(default=None, description="Error message if request failed")
+    success: bool = Field(default=True, description="Whether the request succeeded")

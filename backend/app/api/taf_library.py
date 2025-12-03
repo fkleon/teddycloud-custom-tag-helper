@@ -3,13 +3,16 @@ API routes for TAF-centric library view
 Shows all TAF files and which tonies (if any) they're linked to
 """
 
+import asyncio
 import logging
+from collections import defaultdict
 from fastapi import APIRouter, Depends
 from typing import List, Dict, Any
 
 from ..models.schemas import TAFLibraryResponse, TAFFileWithTonie, TonieModel
 from ..services.teddycloud_client import TeddyCloudClient
 from ..services.volume_scanner import VolumeScanner
+from ..services.cache import get_cached_taf_files, invalidate_taf_cache
 from ..config import get_settings, Settings
 
 logger = logging.getLogger(__name__)
@@ -68,10 +71,10 @@ async def get_taf_library(settings: Settings = Depends(get_settings)):
     try:
         client = TeddyCloudClient(settings.teddycloud.url, settings.teddycloud.api_base)
 
-        # Scan TAF files from mounted volume
-        logger.info("Scanning TAF files from mounted volumes (includes subdirectories)...")
+        # PERFORMANCE: Use cached TAF files scan
+        logger.info("Getting TAF files (with caching)...")
         scanner = VolumeScanner(settings.volumes.data_path)
-        all_taf_files = scanner.scan_taf_files_recursive()
+        all_taf_files = await get_cached_taf_files(scanner)
 
         # Fallback to API scanning if volume scan returns no files
         if not all_taf_files:
@@ -87,7 +90,7 @@ async def get_taf_library(settings: Settings = Depends(get_settings)):
 
         logger.info(f"Loaded {len(tonies_custom_data)} custom + {len(tonies_official_data)} official tonies")
 
-        # Build tonie lookup by audio_id, hash, and model
+        # PERFORMANCE: Build ALL lookup maps ONCE before processing
         tonie_by_audio_id: Dict[int, TonieModel] = {}
         tonie_by_hash: Dict[str, TonieModel] = {}
         tonie_by_model: Dict[str, TonieModel] = {}
@@ -114,34 +117,53 @@ async def get_taf_library(settings: Settings = Depends(get_settings)):
             if tonie.model:
                 tonie_by_model[tonie.model] = tonie
 
-        # Enrich TAF files with metadata from TeddyCloud API
-        # We need to get TAF headers from TeddyCloud
-        logger.info("Enriching TAF files with metadata from TeddyCloud API...")
+        # PERFORMANCE: Group TAF files by directory to minimize API calls
+        taf_by_dir = defaultdict(list)
+        for file_item in all_taf_files:
+            file_path = file_item.get("name", "")
+            if "/" in file_path:
+                directory = "/".join(file_path.split("/")[:-1])
+            else:
+                directory = ""
+            taf_by_dir[directory].append(file_item)
+
+        # PERFORMANCE: Fetch all directories in parallel using asyncio.gather
+        logger.info(f"Enriching TAF files from {len(taf_by_dir)} directories in parallel...")
+        directories = list(taf_by_dir.keys())
+        file_indices = await asyncio.gather(
+            *[client.get_file_index(d) for d in directories],
+            return_exceptions=True
+        )
+
+        # Build directory -> {filename: tafHeader} lookup
+        dir_file_headers = {}
+        for directory, file_index in zip(directories, file_indices):
+            if isinstance(file_index, Exception):
+                logger.debug(f"Failed to get file index for {directory}: {file_index}")
+                dir_file_headers[directory] = {}
+            else:
+                dir_file_headers[directory] = {
+                    f.get("name"): f.get("tafHeader", {})
+                    for f in file_index.get("files", [])
+                }
+
+        # Enrich TAF files with metadata (now O(1) lookups instead of API calls)
         enriched_taf_files = []
         for file_item in all_taf_files:
-            try:
-                # Extract directory from path
-                file_path = file_item.get("name", "")
-                if "/" in file_path:
-                    directory = "/".join(file_path.split("/")[:-1])
-                else:
-                    directory = ""
-
-                # Get file index for this directory from TeddyCloud
-                file_index = await client.get_file_index(directory)
+            file_path = file_item.get("name", "")
+            if "/" in file_path:
+                directory = "/".join(file_path.split("/")[:-1])
                 filename = file_path.split("/")[-1]
+            else:
+                directory = ""
+                filename = file_path
 
-                # Find matching file in index
-                for api_file in file_index.get("files", []):
-                    if api_file.get("name") == filename:
-                        # Merge volume scanner data with API metadata
-                        file_item["tafHeader"] = api_file.get("tafHeader", {})
-                        break
+            # O(1) lookup instead of API call
+            taf_header = dir_file_headers.get(directory, {}).get(filename, {})
+            if taf_header:
+                file_item["tafHeader"] = taf_header
 
-                enriched_taf_files.append(file_item)
-            except Exception as e:
-                logger.warning(f"Failed to enrich {file_item.get('name')}: {e}")
-                enriched_taf_files.append(file_item)
+            enriched_taf_files.append(file_item)
 
         all_taf_files = enriched_taf_files
 
@@ -210,10 +232,12 @@ async def get_taf_library(settings: Settings = Depends(get_settings)):
 
     except Exception as e:
         logger.error(f"Failed to get TAF library: {e}")
-        # Return empty response on error
+        # Return error response with details for frontend debugging
         return TAFLibraryResponse(
             taf_files=[],
             total_count=0,
             linked_count=0,
-            orphaned_count=0
+            orphaned_count=0,
+            success=False,
+            error=f"Failed to load TAF library: {str(e)}"
         )

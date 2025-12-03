@@ -11,11 +11,12 @@ RUN npm run build
 # Final stage: Python backend with nginx for frontend
 FROM python:3.11-slim
 
-# Install nginx and required packages
+# Install nginx and required packages (including curl for health checks)
 RUN apt-get update && apt-get install -y \
     nginx \
     libmagic1 \
     procps \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Setup backend

@@ -99,7 +99,7 @@ class TeddyCloudClient:
 
     async def save_tonies_custom_json(self, tonies_data: List[Dict[str, Any]], config_path: str = None) -> bool:
         """
-        Save tonies.custom.json via direct file write
+        Save tonies.custom.json via direct file write with atomic write protection
 
         Note: TeddyCloud API doesn't support writing via HTTP, so we write directly to file
 
@@ -112,23 +112,53 @@ class TeddyCloudClient:
         """
         try:
             import json
+            import tempfile
+            import os
             from pathlib import Path
 
-            # Prepare JSON data
-            json_str = json.dumps(tonies_data, indent=2, ensure_ascii=False)
-
-            # Determine config path
+            # SECURITY: Validate config_path against whitelist
+            allowed_paths = ["/data/config", "/config"]
             if not config_path:
                 config_path = "/data/config"
+
+            # Resolve and validate path
+            resolved_path = str(Path(config_path).resolve())
+            if not any(resolved_path.startswith(allowed) or resolved_path == allowed for allowed in allowed_paths):
+                logger.error(f"Rejected invalid config path: {config_path}")
+                return False
 
             config_file = Path(config_path) / "tonies.custom.json"
 
             # Create config directory if it doesn't exist
             config_file.parent.mkdir(parents=True, exist_ok=True)
 
-            # Write JSON file
-            with open(config_file, 'w', encoding='utf-8') as f:
-                f.write(json_str)
+            # Prepare JSON data
+            json_str = json.dumps(tonies_data, indent=2, ensure_ascii=False)
+
+            # SECURITY: Atomic write using temp file + rename
+            # This prevents partial writes from corrupting the config
+            try:
+                # Create temp file in same directory for atomic rename
+                fd, tmp_path = tempfile.mkstemp(
+                    dir=config_file.parent,
+                    prefix=".tonies.custom.",
+                    suffix=".tmp"
+                )
+                try:
+                    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                        f.write(json_str)
+                    # Atomic rename (on POSIX systems)
+                    os.replace(tmp_path, config_file)
+                except Exception:
+                    # Clean up temp file on error
+                    if os.path.exists(tmp_path):
+                        os.unlink(tmp_path)
+                    raise
+            except OSError as e:
+                # Fallback to direct write if temp file creation fails
+                logger.warning(f"Atomic write failed, falling back to direct write: {e}")
+                with open(config_file, 'w', encoding='utf-8') as f:
+                    f.write(json_str)
 
             logger.info(f"Saved {len(tonies_data)} custom tonies to {config_file}")
             return True

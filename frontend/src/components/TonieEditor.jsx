@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { toniesAPI, libraryAPI, uploadsAPI } from '../api/client';
+import { toniesAPI, uploadsAPI, rfidTagsAPI, tafMetadataAPI, imagesAPI } from '../api/client';
+import { Button, Modal } from './ui';
 import LibraryBrowser from './LibraryBrowser';
 import CoverSelector from './CoverSelector';
 import ConfirmationDialog from './ConfirmationDialog';
 import { useDropzone } from 'react-dropzone';
-import { API_URL } from '../config/apiConfig';
 
 export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
   const isEditMode = !!tonie;
@@ -66,17 +66,14 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
   const loadAvailableRFIDTags = async () => {
     setLoadingTags(true);
     try {
-      const response = await fetch(`${API_URL}/api/rfid-tags/`);
-      if (!response.ok) throw new Error('Failed to load RFID tags');
-
-      const data = await response.json();
+      const { data } = await rfidTagsAPI.getAll();
       // Filter to show only unconfigured and unassigned tags
-      const availableTags = data.tags.filter(
-        tag => tag.status === 'unconfigured' || tag.status === 'unassigned'
+      const availableTags = (data.tags || []).filter(
+        tag => tag.status === 'unconfigured' || tag.status === 'unassigned',
       );
       setAvailableRFIDTags(availableTags);
-    } catch (err) {
-      console.error('Failed to load RFID tags:', err);
+    } catch (_err) {
+      // Silent fail - tags are optional
     } finally {
       setLoadingTags(false);
     }
@@ -85,23 +82,20 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
   // Load next available model number
   const loadNextModelNumber = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/rfid-tags/next-model-number`);
-      if (!response.ok) throw new Error('Failed to get next model number');
-
-      const data = await response.json();
+      const { data } = await rfidTagsAPI.getNextModelNumber();
       setFormData(prev => ({ ...prev, model: data.next_model_number }));
-    } catch (err) {
-      console.error('Failed to get next model number:', err);
+    } catch (_err) {
+      // Silent fail - model will be auto-assigned
     }
   };
 
   // Load available cover images from library
   const loadAvailableCovers = async () => {
     try {
-      const response = await uploadsAPI.listCovers();
-      setAvailableCovers(response.data.images || []);
-    } catch (err) {
-      console.error('Failed to load available covers:', err);
+      const { data } = await uploadsAPI.listCovers();
+      setAvailableCovers(data.images || []);
+    } catch (_err) {
+      // Silent fail - gallery will show empty
     }
   };
 
@@ -119,13 +113,7 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/taf-metadata/parse?taf_filename=${encodeURIComponent(filename)}`, {
-        method: 'POST'
-      });
-
-      if (!response.ok) throw new Error('Failed to parse TAF');
-
-      const data = await response.json();
+      const { data } = await tafMetadataAPI.parse(filename);
 
       // Pre-populate form fields
       setFormData((prev) => ({
@@ -152,7 +140,7 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
       }
 
     } catch (err) {
-      setError(`Failed to parse TAF: ${err.message}`);
+      setError(`Failed to parse TAF: ${err.userMessage || err.message}`);
     } finally {
       setParsing(false);
     }
@@ -196,18 +184,9 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
   // Download cover and get filename
   const downloadCover = async (imageUrl) => {
     try {
-      const response = await fetch(`${API_URL}/api/taf-metadata/download-cover`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_url: imageUrl })
-      });
-
-      if (!response.ok) throw new Error('Failed to download cover');
-
-      const data = await response.json();
+      const { data } = await tafMetadataAPI.downloadCover(imageUrl);
       return data.path;  // Return full path with leading slash
-    } catch (err) {
-      console.error('Cover download failed:', err);
+    } catch (_err) {
       return null;
     }
   };
@@ -240,20 +219,12 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
         onSave();
       } else {
         // For create mode, show preview first
-        const response = await fetch(`${API_URL}/api/tonies/preview`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
-
-        if (!response.ok) throw new Error('Failed to generate preview');
-
-        const preview = await response.json();
+        const { data: preview } = await toniesAPI.preview(formData);
         setPreviewJson(preview);
         setShowConfirmation(true);
       }
     } catch (err) {
-      setError(`Failed to generate preview: ${err.message}`);
+      setError(`Failed to generate preview: ${err.userMessage || err.message}`);
     }
   };
 
@@ -263,7 +234,7 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
 
     try {
       // Download cover if selected from search results
-      let finalFormData = { ...formData };
+      const finalFormData = { ...formData };
 
       if (selectedCoverUrl && !coverPreview) {
         const coverPath = await downloadCover(selectedCoverUrl);
@@ -289,7 +260,7 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
   const coverUrl = coverPreview
     ? (coverPreview.startsWith('http://') || coverPreview.startsWith('https://'))
       ? coverPreview
-      : `${API_URL}/api/images/${coverPreview.startsWith('/') ? coverPreview.substring(1) : coverPreview}`
+      : imagesAPI.getUrl(coverPreview)
     : null;
 
   return (
@@ -305,17 +276,18 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
       )}
 
       {/* Library Browser Modal */}
-      {showLibrary && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto transition-colors">
-            <LibraryBrowser
-              onSelect={handleTAFSelect}
-              onCancel={() => setShowLibrary(false)}
-              parsing={parsing}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        title="Select TAF File"
+        size="xl"
+      >
+        <LibraryBrowser
+          onSelect={handleTAFSelect}
+          onCancel={() => setShowLibrary(false)}
+          parsing={parsing}
+        />
+      </Modal>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* TAF Selection */}
@@ -598,61 +570,42 @@ export default function TonieEditor({ tonie, tafFile, onSave, onCancel }) {
 
         {/* Actions */}
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
+          <Button variant="secondary" onClick={onCancel}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
+          </Button>
+          <Button type="submit" variant="primary">
             {isEditMode ? 'Update Tonie' : 'Create Tonie'}
-          </button>
+          </Button>
         </div>
       </form>
 
       {/* Cover Gallery Modal */}
-      {showCoverGallery && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col transition-colors">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Choose from Library</h3>
+      <Modal
+        isOpen={showCoverGallery}
+        onClose={() => setShowCoverGallery(false)}
+        title="Choose from Library"
+        size="xl"
+      >
+        {availableCovers.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">No covers found in library</p>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+            {availableCovers.map((cover) => (
               <button
-                onClick={() => setShowCoverGallery(false)}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                key={cover.filename}
+                onClick={() => handleSelectFromGallery(cover.path)}
+                className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <img
+                  src={imagesAPI.getUrl(cover.path)}
+                  alt={cover.filename}
+                  className="w-full h-full object-cover"
+                />
               </button>
-            </div>
-            <div className="p-4 overflow-y-auto">
-              {availableCovers.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-8">No covers found in library</p>
-              ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                  {availableCovers.map((cover) => (
-                    <button
-                      key={cover.filename}
-                      onClick={() => handleSelectFromGallery(cover.path)}
-                      className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
-                    >
-                      <img
-                        src={`${API_URL}/api/images/${cover.path.startsWith('/') ? cover.path.substring(1) : cover.path}`}
-                        alt={cover.filename}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            ))}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Confirmation Dialog */}
       <ConfirmationDialog

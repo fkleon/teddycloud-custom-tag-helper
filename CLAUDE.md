@@ -89,21 +89,14 @@ location /api/ {
 ```
 The trailing slashes are **required** for proper API routing. Without them, requests like `/api/taf-library/` will return 404.
 
-### Two Access Modes for TeddyCloud Data
+### Data Access Method
 
-**Mode 1: Direct Volume Mount (Recommended)**
+**Direct Volume Mount (Required)**
 - Fastest performance
 - Direct filesystem access
-- Requires `volumes.enabled: true` in config.yaml
 - Set `TEDDYCLOUD_DATA_PATH=/path/to/teddycloud/data` in environment
 - Enables recursive TAF scanning and RFID tag detection
-
-**Mode 2: SMB Network Share**
-- Network-based access
-- Fallback when direct mount not possible
-- Set `smb.enabled: true` in config.yaml
-- Configure SMB credentials
-- Limited to root-level TAF files (no subdirectory scanning)
+- For network shares (SMB/NFS): mount at host level, then bind-mount into container
 
 ## Development Commands
 
@@ -166,18 +159,18 @@ npm run preview
 The `teddycloud-data` volume must be populated with TeddyCloud data:
 
 ```bash
-# Option 1: Use provided script (requires SMB mount)
+# Option 1: Use provided script
 bash setup-teddycloud-volume.sh
 
-# Option 2: Manual copy from SMB share
+# Option 2: Manual copy from source directory
 docker run --rm \
   -v teddycloud-custom-tonie-manager_teddycloud-data:/data \
-  -v /Volumes/docker-appdata/teddycloud:/source:ro \
+  -v /path/to/teddycloud:/source:ro \
   alpine cp -r /source/* /data/
 
-# Option 3: Edit docker-compose.yml to use local path
+# Option 3: Edit docker-compose.yml to use bind mount (recommended)
 # Replace: - teddycloud-data:/data
-# With: - /Volumes/docker-appdata/teddycloud:/data:ro
+# With: - /path/to/teddycloud:/data
 ```
 
 ## Configuration Management
