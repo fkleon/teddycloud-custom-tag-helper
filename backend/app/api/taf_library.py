@@ -56,7 +56,11 @@ async def get_all_taf_files_recursive(client: TeddyCloudClient, path: str = "") 
 
 
 @router.get("/", response_model=TAFLibraryResponse)
-async def get_taf_library(settings: Settings = Depends(get_settings)):
+async def get_taf_library(
+    skip: int = 0,
+    limit: int = 50,
+    settings: Settings = Depends(get_settings)
+):
     """
     Get TAF-centric library view: all TAF files with their linked tonies
 
@@ -65,8 +69,12 @@ async def get_taf_library(settings: Settings = Depends(get_settings)):
     - Which custom tonie (if any) is linked to each TAF
     - Orphaned TAF files (not linked to any tonie)
 
+    Args:
+        skip: Number of items to skip (offset for pagination)
+        limit: Maximum number of items to return (page size)
+
     Returns:
-        TAF files with linkage information
+        Paginated TAF files with linkage information
     """
     try:
         client = TeddyCloudClient(settings.teddycloud.url, settings.teddycloud.api_base)
@@ -216,18 +224,30 @@ async def get_taf_library(settings: Settings = Depends(get_settings)):
         # Sort: linked files first, then alphabetically
         taf_files.sort(key=lambda x: (not x.is_linked, x.name.lower()))
 
-        # Calculate statistics
+        # Calculate statistics (on full dataset before pagination)
         total_count = len(taf_files)
         linked_count = sum(1 for f in taf_files if f.is_linked)
         orphaned_count = total_count - linked_count
 
-        logger.info(f"TAF Library: {total_count} files, {linked_count} linked, {orphaned_count} orphaned")
+        # Apply pagination
+        paginated_files = taf_files[skip:skip + limit]
+
+        # Calculate pagination metadata
+        page = (skip // limit) + 1 if limit > 0 else 1
+        has_next = skip + limit < total_count
+        has_prev = skip > 0
+
+        logger.info(f"TAF Library: {total_count} files, {linked_count} linked, {orphaned_count} orphaned (page {page}, showing {len(paginated_files)})")
 
         return TAFLibraryResponse(
-            taf_files=taf_files,
+            taf_files=paginated_files,
             total_count=total_count,
             linked_count=linked_count,
-            orphaned_count=orphaned_count
+            orphaned_count=orphaned_count,
+            page=page,
+            page_size=limit,
+            has_next=has_next,
+            has_prev=has_prev
         )
 
     except Exception as e:

@@ -38,24 +38,37 @@ class RFIDTag(BaseModel):
 
 
 class RFIDTagsResponse(BaseModel):
-    """Response with all RFID tags"""
+    """Response with RFID tags (paginated)"""
     tags: List[RFIDTag]
     total_count: int
     unconfigured_count: int
     unassigned_count: int
     assigned_count: int
+    # Pagination fields
+    page: int = 1
+    page_size: int = 50
+    has_next: bool = False
+    has_prev: bool = False
     # Error handling - allows frontend to distinguish between empty data and error
     error: Optional[str] = None
     success: bool = True
 
 
 @router.get("/", response_model=RFIDTagsResponse)
-async def get_rfid_tags(settings: Settings = Depends(get_settings)):
+async def get_rfid_tags(
+    skip: int = 0,
+    limit: int = 50,
+    settings: Settings = Depends(get_settings)
+):
     """
-    Get all known RFID tags from TeddyCloud content directory
+    Get known RFID tags from TeddyCloud content directory with pagination
+
+    Args:
+        skip: Number of items to skip (offset for pagination)
+        limit: Maximum number of items to return (page size)
 
     Returns:
-        List of RFID tags with their status
+        Paginated list of RFID tags with their status
     """
     try:
         scanner = VolumeScanner(settings.volumes.data_path)
@@ -102,20 +115,32 @@ async def get_rfid_tags(settings: Settings = Depends(get_settings)):
                 linked_tonie=linked_tonie
             ))
 
-        # Calculate statistics
+        # Calculate statistics (on full dataset before pagination)
         total = len(tags)
         unconfigured = sum(1 for t in tags if t.status == "unconfigured")
         unassigned = sum(1 for t in tags if t.status == "unassigned")
         assigned = sum(1 for t in tags if t.status == "assigned")
 
-        logger.info(f"Found {total} RFID tags: {unconfigured} unconfigured, {unassigned} unassigned, {assigned} assigned")
+        # Apply pagination
+        paginated_tags = tags[skip:skip + limit]
+
+        # Calculate pagination metadata
+        page = (skip // limit) + 1 if limit > 0 else 1
+        has_next = skip + limit < total
+        has_prev = skip > 0
+
+        logger.info(f"Found {total} RFID tags: {unconfigured} unconfigured, {unassigned} unassigned, {assigned} assigned (page {page}, showing {len(paginated_tags)})")
 
         return RFIDTagsResponse(
-            tags=tags,
+            tags=paginated_tags,
             total_count=total,
             unconfigured_count=unconfigured,
             unassigned_count=unassigned,
-            assigned_count=assigned
+            assigned_count=assigned,
+            page=page,
+            page_size=limit,
+            has_next=has_next,
+            has_prev=has_prev
         )
 
     except Exception as e:

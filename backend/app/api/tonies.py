@@ -6,7 +6,7 @@ import logging
 from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 
-from ..models.schemas import TonieModel, TonieCreateRequest, TonieUpdateRequest
+from ..models.schemas import TonieModel, TonieCreateRequest, TonieUpdateRequest, ToniesListResponse
 from ..services.tonies_manager import ToniesManager
 from ..config import get_settings, Settings
 
@@ -20,13 +20,21 @@ def get_tonies_manager(settings: Settings = Depends(get_settings)) -> ToniesMana
     return ToniesManager(settings.volumes.config_path)
 
 
-@router.get("/", response_model=List[TonieModel])
-async def list_tonies(settings: Settings = Depends(get_settings)):
+@router.get("/", response_model=ToniesListResponse)
+async def list_tonies(
+    skip: int = 0,
+    limit: int = 50,
+    settings: Settings = Depends(get_settings)
+):
     """
-    Get all custom tonies via TeddyCloud API
+    Get custom tonies via TeddyCloud API with pagination
+
+    Args:
+        skip: Number of items to skip (offset for pagination)
+        limit: Maximum number of items to return (page size)
 
     Returns:
-        List of custom tonies
+        Paginated list of custom tonies
     """
     try:
         from ..services.teddycloud_client import TeddyCloudClient
@@ -37,8 +45,26 @@ async def list_tonies(settings: Settings = Depends(get_settings)):
 
         # Convert to TonieModel objects
         tonies = [TonieModel(**item) for item in tonies_data]
-        logger.info(f"Loaded {len(tonies)} custom tonies from TeddyCloud API")
-        return tonies
+        total_count = len(tonies)
+
+        # Apply pagination
+        paginated_tonies = tonies[skip:skip + limit]
+
+        # Calculate pagination metadata
+        page = (skip // limit) + 1 if limit > 0 else 1
+        has_next = skip + limit < total_count
+        has_prev = skip > 0
+
+        logger.info(f"Loaded {total_count} custom tonies from TeddyCloud API (page {page}, showing {len(paginated_tonies)})")
+
+        return ToniesListResponse(
+            items=paginated_tonies,
+            total_count=total_count,
+            page=page,
+            page_size=limit,
+            has_next=has_next,
+            has_prev=has_prev
+        )
     except Exception as e:
         logger.error(f"Failed to list tonies: {e}")
         raise HTTPException(status_code=500, detail=str(e))

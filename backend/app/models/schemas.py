@@ -2,8 +2,26 @@
 Data models for Custom Tag Helper
 """
 
-from typing import List, Optional
+from typing import List, Optional, Generic, TypeVar
 from pydantic import BaseModel, Field
+
+T = TypeVar('T')
+
+
+class PaginationParams(BaseModel):
+    """Pagination parameters for list endpoints"""
+    skip: int = Field(default=0, ge=0, description="Number of items to skip (offset)")
+    limit: int = Field(default=50, ge=1, le=500, description="Maximum number of items to return")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """Generic paginated response wrapper"""
+    items: List[T] = Field(description="List of items for current page")
+    total_count: int = Field(description="Total number of items across all pages")
+    page: int = Field(description="Current page number (1-indexed)")
+    page_size: int = Field(description="Number of items per page")
+    has_next: bool = Field(description="Whether there are more items after this page")
+    has_prev: bool = Field(description="Whether there are items before this page")
 
 
 class TonieModel(BaseModel):
@@ -65,6 +83,16 @@ class TonieUpdateRequest(BaseModel):
     tracks: Optional[List[str]] = None
     language: Optional[str] = None
     pic: Optional[str] = None
+
+
+class ToniesListResponse(BaseModel):
+    """Paginated response for tonies list"""
+    items: List[TonieModel] = Field(description="Tonies for current page")
+    total_count: int = Field(description="Total number of tonies")
+    page: int = Field(default=1, description="Current page number (1-indexed)")
+    page_size: int = Field(default=50, description="Number of items per page")
+    has_next: bool = Field(default=False, description="Whether there are more items after this page")
+    has_prev: bool = Field(default=False, description="Whether there are items before this page")
 
 
 class TAFMetadata(BaseModel):
@@ -131,11 +159,16 @@ class TAFFileWithTonie(BaseModel):
 
 
 class TAFLibraryResponse(BaseModel):
-    """Response for TAF-centric library view"""
-    taf_files: List[TAFFileWithTonie] = Field(description="All TAF files with linkage info")
+    """Response for TAF-centric library view with pagination"""
+    taf_files: List[TAFFileWithTonie] = Field(description="TAF files for current page")
     total_count: int = Field(description="Total number of TAF files")
     linked_count: int = Field(description="Number of TAF files linked to tonies")
     orphaned_count: int = Field(description="Number of TAF files not linked to any tonie")
+    # Pagination fields
+    page: int = Field(default=1, description="Current page number (1-indexed)")
+    page_size: int = Field(default=50, description="Number of items per page")
+    has_next: bool = Field(default=False, description="Whether there are more items after this page")
+    has_prev: bool = Field(default=False, description="Whether there are items before this page")
     # Error handling - allows frontend to distinguish between empty data and error
     error: Optional[str] = Field(default=None, description="Error message if request failed")
     success: bool = Field(default=True, description="Whether the request succeeded")
