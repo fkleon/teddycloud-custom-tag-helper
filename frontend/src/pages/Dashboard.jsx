@@ -114,11 +114,40 @@ export default function Dashboard() {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/config`);
-      const data = await response.json();
-      setSelectedBox(data.app.selected_box);
-      if (data.app.default_language) {
-        setDefaultLanguage(data.app.default_language);
+      // Fetch config and available boxes in parallel
+      const [configResponse, boxesResponse] = await Promise.all([
+        fetch(`${API_URL}/api/config`),
+        fetch(`${API_URL}/api/rfid-tags/tonieboxes`)
+      ]);
+
+      const configData = await configResponse.json();
+      const boxesData = await boxesResponse.json();
+      const boxes = boxesData.boxes || [];
+
+      let currentSelectedBox = configData.app.selected_box;
+
+      // Auto-select first box if none selected but boxes are available
+      if (!currentSelectedBox && boxes.length > 0) {
+        currentSelectedBox = boxes[0].id;
+
+        // Persist the auto-selection to config
+        try {
+          await fetch(`${API_URL}/api/config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...configData,
+              app: { ...configData.app, selected_box: currentSelectedBox }
+            })
+          });
+        } catch (saveErr) {
+          console.warn('Failed to persist auto-selected box:', saveErr);
+        }
+      }
+
+      setSelectedBox(currentSelectedBox);
+      if (configData.app.default_language) {
+        setDefaultLanguage(configData.app.default_language);
       }
     } catch (err) {
       console.error('Failed to load config:', err);
