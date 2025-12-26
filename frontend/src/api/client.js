@@ -39,7 +39,7 @@ export const toniesAPI = {
 
 // TAF Library API - TAF-centric view of all audio files
 export const tafLibraryAPI = {
-  getAll: (skip = 0, limit = 50) => client.get('/taf-library/', { params: { skip, limit } }),
+  getAll: (skip = 0, limit = 50, filter = 'all') => client.get('/taf-library/', { params: { skip, limit, filter } }),
 };
 
 // TAF Metadata API - metadata extraction and cover search

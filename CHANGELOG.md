@@ -6,6 +6,38 @@ This project has been prepared for public release on GitHub/Forgejo. All persona
 
 ---
 
+## [2.2.3] - 2025-12-26
+
+### Fixed - TAF Library Filter Not Working with Pagination
+
+Fixed an issue where clicking on "Orphaned" or "Linked" filter tabs in the TAF Library view showed empty results even though the statistics showed matching files.
+
+#### Root Cause
+- Filtering was applied **client-side** on the already-paginated data
+- Backend sorted linked files first, then applied pagination
+- With 86 linked + 14 orphaned files, page 1 contained only linked files
+- Clicking "Orphaned" filtered page 1's 50 linked files, finding 0 matches
+
+#### Solution
+- Moved filtering from client-side to **server-side** (before pagination)
+- Added `filter` query parameter to `/api/taf-library/` endpoint
+- Filter state now managed in TAFLibraryContext, passed to API
+- Pagination now operates on filtered results
+
+#### Files Changed
+- **backend/app/api/taf_library.py** - Added `filter` parameter, filter before pagination
+- **frontend/src/api/client.js** - Added filter param to `tafLibraryAPI.getAll()`
+- **frontend/src/context/TAFLibraryContext.jsx** - Added filter state and `setFilter()` function
+- **frontend/src/components/TAFLibrary.jsx** - Use context filter, removed client-side filtering
+
+#### Acceptance Criteria Met
+- [x] Clicking "Orphaned" shows all orphaned files with correct pagination
+- [x] Clicking "Linked" shows all linked files with correct pagination
+- [x] Statistics still show total counts across all files
+- [x] Filter changes reset to page 1
+
+---
+
 ## [2.2.2] - 2025-12-26
 
 ### Fixed - Settings Changes Requiring Page Reload

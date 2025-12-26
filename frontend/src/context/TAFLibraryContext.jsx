@@ -19,9 +19,12 @@ export function TAFLibraryProvider({ children }) {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
 
-  const loadTafFiles = useCallback(async (force = false, newPage = page, newPageSize = pageSize) => {
-    // Skip if already loaded and not forcing refresh (and same page)
-    if (tafFiles.length > 0 && !force && lastUpdated && newPage === page && newPageSize === pageSize) {
+  // Filter state - applied server-side before pagination
+  const [filter, setFilterState] = useState('all'); // 'all', 'linked', 'orphaned'
+
+  const loadTafFiles = useCallback(async (force = false, newPage = page, newPageSize = pageSize, newFilter = filter) => {
+    // Skip if already loaded and not forcing refresh (and same page/filter)
+    if (tafFiles.length > 0 && !force && lastUpdated && newPage === page && newPageSize === pageSize && newFilter === filter) {
       return;
     }
 
@@ -30,7 +33,7 @@ export function TAFLibraryProvider({ children }) {
 
     try {
       const skip = (newPage - 1) * newPageSize;
-      const { data } = await tafLibraryAPI.getAll(skip, newPageSize);
+      const { data } = await tafLibraryAPI.getAll(skip, newPageSize, newFilter);
 
       // Handle API error response
       if (data.success === false && data.error) {
@@ -54,7 +57,7 @@ export function TAFLibraryProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [tafFiles.length, lastUpdated, page, pageSize]);
+  }, [tafFiles.length, lastUpdated, page, pageSize, filter]);
 
   // Load on mount
   useEffect(() => {
@@ -67,14 +70,20 @@ export function TAFLibraryProvider({ children }) {
 
   const goToPage = useCallback((newPage) => {
     setPage(newPage);
-    return loadTafFiles(true, newPage, pageSize);
-  }, [loadTafFiles, pageSize]);
+    return loadTafFiles(true, newPage, pageSize, filter);
+  }, [loadTafFiles, pageSize, filter]);
 
   const changePageSize = useCallback((newPageSize) => {
     setPageSize(newPageSize);
     setPage(1); // Reset to first page when changing page size
-    return loadTafFiles(true, 1, newPageSize);
-  }, [loadTafFiles]);
+    return loadTafFiles(true, 1, newPageSize, filter);
+  }, [loadTafFiles, filter]);
+
+  const setFilter = useCallback((newFilter) => {
+    setFilterState(newFilter);
+    setPage(1); // Reset to first page when changing filter
+    return loadTafFiles(true, 1, pageSize, newFilter);
+  }, [loadTafFiles, pageSize]);
 
   return (
     <TAFLibraryContext.Provider value={{
@@ -92,6 +101,9 @@ export function TAFLibraryProvider({ children }) {
       hasPrev,
       goToPage,
       changePageSize,
+      // Filter
+      filter,
+      setFilter,
     }}>
       {children}
     </TAFLibraryContext.Provider>

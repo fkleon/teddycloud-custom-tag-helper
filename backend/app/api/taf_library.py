@@ -59,6 +59,7 @@ async def get_all_taf_files_recursive(client: TeddyCloudClient, path: str = "") 
 async def get_taf_library(
     skip: int = 0,
     limit: int = 50,
+    filter: str = "all",
     settings: Settings = Depends(get_settings)
 ):
     """
@@ -72,6 +73,7 @@ async def get_taf_library(
     Args:
         skip: Number of items to skip (offset for pagination)
         limit: Maximum number of items to return (page size)
+        filter: Filter by link status - "all", "linked", or "orphaned"
 
     Returns:
         Paginated TAF files with linkage information
@@ -224,24 +226,35 @@ async def get_taf_library(
         # Sort: linked files first, then alphabetically
         taf_files.sort(key=lambda x: (not x.is_linked, x.name.lower()))
 
-        # Calculate statistics (on full dataset before pagination)
+        # Calculate statistics (on full dataset before filtering)
         total_count = len(taf_files)
         linked_count = sum(1 for f in taf_files if f.is_linked)
         orphaned_count = total_count - linked_count
 
-        # Apply pagination
-        paginated_files = taf_files[skip:skip + limit]
+        # Apply filter BEFORE pagination (filter affects which items are paginated)
+        if filter == "linked":
+            filtered_files = [f for f in taf_files if f.is_linked]
+        elif filter == "orphaned":
+            filtered_files = [f for f in taf_files if not f.is_linked]
+        else:
+            filtered_files = taf_files
 
-        # Calculate pagination metadata
+        # Update total count to reflect filtered results for pagination
+        filtered_total = len(filtered_files)
+
+        # Apply pagination to filtered results
+        paginated_files = filtered_files[skip:skip + limit]
+
+        # Calculate pagination metadata (based on filtered results)
         page = (skip // limit) + 1 if limit > 0 else 1
-        has_next = skip + limit < total_count
+        has_next = skip + limit < filtered_total
         has_prev = skip > 0
 
-        logger.info(f"TAF Library: {total_count} files, {linked_count} linked, {orphaned_count} orphaned (page {page}, showing {len(paginated_files)})")
+        logger.info(f"TAF Library: {total_count} files, {linked_count} linked, {orphaned_count} orphaned, filter={filter} ({filtered_total} matching, page {page}, showing {len(paginated_files)})")
 
         return TAFLibraryResponse(
             taf_files=paginated_files,
-            total_count=total_count,
+            total_count=filtered_total,
             linked_count=linked_count,
             orphaned_count=orphaned_count,
             page=page,

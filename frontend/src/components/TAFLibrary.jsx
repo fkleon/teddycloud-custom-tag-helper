@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { API_URL } from '../config/apiConfig';
 import { useTAFLibrary } from '../hooks/useTAFLibrary';
 import { useTranslation } from '../hooks/useTranslation';
@@ -19,8 +18,9 @@ export default function TAFLibrary({ onCreateTonie }) {
     hasPrev,
     goToPage,
     changePageSize,
+    filter,
+    setFilter,
   } = useTAFLibrary();
-  const [filter, setFilter] = useState('all'); // 'all', 'linked', 'orphaned'
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 B';
@@ -42,11 +42,7 @@ export default function TAFLibrary({ onCreateTonie }) {
     return formatDuration(total);
   };
 
-  const filteredFiles = tafFiles.filter(file => {
-    if (filter === 'linked') return file.is_linked;
-    if (filter === 'orphaned') return !file.is_linked;
-    return true;
-  });
+  // Files are already filtered server-side, no client-side filtering needed
 
   if (loading) {
     return (
@@ -135,7 +131,7 @@ export default function TAFLibrary({ onCreateTonie }) {
 
         {/* TAF Files List - Split View Layout */}
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {filteredFiles.map((file, idx) => (
+          {tafFiles.map((file, idx) => (
             <div
               key={idx}
               className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -265,7 +261,7 @@ export default function TAFLibrary({ onCreateTonie }) {
             </div>
           ))}
 
-          {filteredFiles.length === 0 && (
+          {tafFiles.length === 0 && (
             <div className="px-6 py-12 text-center text-gray-500">
               {t('taf.noFilesFound')}
               {filter !== 'all' && ` ${t('rfid.inCategory')} "${t(`taf.filters.${filter}`)}"`}.
