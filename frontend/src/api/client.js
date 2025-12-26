@@ -29,7 +29,7 @@ client.interceptors.response.use(
 
 // Tonies API
 export const toniesAPI = {
-  getAll: () => client.get('/tonies/'),
+  getAll: (skip = 0, limit = 50) => client.get('/tonies/', { params: { skip, limit } }),
   getOne: (no) => client.get(`/tonies/${no}`),
   create: (data) => client.post('/tonies/', data),
   update: (no, data) => client.put(`/tonies/${no}`, data),
@@ -39,7 +39,7 @@ export const toniesAPI = {
 
 // TAF Library API - TAF-centric view of all audio files
 export const tafLibraryAPI = {
-  getAll: () => client.get('/taf-library/'),
+  getAll: (skip = 0, limit = 50) => client.get('/taf-library/', { params: { skip, limit } }),
 };
 
 // TAF Metadata API - metadata extraction and cover search
@@ -58,7 +58,7 @@ export const tafMetadataAPI = {
 
 // RFID Tags API - hardware tag management
 export const rfidTagsAPI = {
-  getAll: () => client.get('/rfid-tags/'),
+  getAll: (skip = 0, limit = 50) => client.get('/rfid-tags/', { params: { skip, limit } }),
   getNextModelNumber: () => client.get('/rfid-tags/next-model-number'),
   getTonieboxes: () => client.get('/rfid-tags/tonieboxes'),
   linkTag: (tagUid, boxId, model, tafPath) => client.post('/rfid-tags/link', {

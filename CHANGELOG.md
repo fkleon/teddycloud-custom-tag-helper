@@ -6,6 +6,65 @@ This project has been prepared for public release on GitHub/Forgejo. All persona
 
 ---
 
+## [2.2.0] - 2025-12-26
+
+### Added - Frontend Pagination UI
+
+Added pagination controls to all list views for improved performance with large libraries.
+
+#### New Components
+- **Pagination.jsx** - Reusable pagination component with:
+  - Page navigation (Previous/Next buttons)
+  - Page indicator ("Page X of Y")
+  - Item count display ("Showing X to Y of Z items")
+  - Page size selector (20, 50, 100 items per page)
+  - Full dark mode support
+  - German/English translations
+
+#### Components Updated
+- **TAFLibrary.jsx** - Added pagination controls
+  - Fetches only current page from backend
+  - Page navigation with size selector
+  - Works with client-side filtering
+
+- **TAFLibraryContext.jsx** - Extended with pagination state
+  - Added `page`, `pageSize`, `totalCount`, `hasNext`, `hasPrev`
+  - Added `goToPage()` and `changePageSize()` functions
+  - Pagination params passed to API calls
+
+- **TonieGrid.jsx** - Added pagination controls
+  - Receives pagination state from Dashboard
+  - Consistent UI with other views
+
+- **RFIDTagsView.jsx** - Added pagination controls
+  - Internal pagination state management
+  - Page navigation with size selector
+
+- **Dashboard.jsx** - Added tonies pagination management
+  - Pagination state for tonies view
+  - Page change handlers passed to TonieGrid
+
+#### API Client Updated
+- **client.js** - Added pagination parameters
+  - `toniesAPI.getAll(skip, limit)` - Supports pagination
+  - `tafLibraryAPI.getAll(skip, limit)` - Supports pagination
+  - `rfidTagsAPI.getAll(skip, limit)` - Supports pagination
+
+#### Locale Files Updated
+- Added `pagination.*` namespace with 9 translation keys:
+  - `showing`, `to`, `of`, `items`, `noItems`
+  - `perPage`, `page`, `previous`, `next`
+- Both `en.json` and `de.json` updated
+
+#### Acceptance Criteria Met
+- [x] Shows pagination controls below file lists
+- [x] Fetches only current page from backend
+- [x] Total count displayed (e.g., "Page 1 of 5")
+- [x] Smooth navigation between pages
+- [x] Consistent pagination UI across all views
+
+---
+
 ## [2.1.0] - 2025-12-26
 
 ### Added - Complete i18n Translation Support

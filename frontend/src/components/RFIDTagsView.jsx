@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { API_URL } from '../config/apiConfig';
 import { useTranslation } from '../hooks/useTranslation';
+import Pagination from './Pagination';
+
+const DEFAULT_PAGE_SIZE = 50;
 
 export default function RFIDTagsView({ onAssignTag }) {
   const { t } = useTranslation();
@@ -10,20 +13,28 @@ export default function RFIDTagsView({ onAssignTag }) {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'assigned', 'unconfigured'
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
+
   useEffect(() => {
     loadRFIDTags();
   }, []);
 
-  const loadRFIDTags = async () => {
+  const loadRFIDTags = async (newPage = page, newPageSize = pageSize) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/rfid-tags/`);
+      const skip = (newPage - 1) * newPageSize;
+      const response = await fetch(`${API_URL}/api/rfid-tags/?skip=${skip}&limit=${newPageSize}`);
       if (!response.ok) throw new Error('Failed to load RFID tags');
 
       const data = await response.json();
 
       // Filter out system sound tags (box-de-de-01-*)
-      const filteredTags = data.tags.filter(tag => {
+      const filteredTags = (data.tags || []).filter(tag => {
         const model = tag.model || '';
         return !model.startsWith('box-de-de-01-');
       });
@@ -34,16 +45,32 @@ export default function RFIDTagsView({ onAssignTag }) {
 
       setTags(filteredTags);
       setStats({
-        total: filteredTags.length,
-        unconfigured: unconfigured,
-        assigned: assigned
+        total: data.total_count || filteredTags.length,
+        unconfigured: data.unconfigured_count || unconfigured,
+        assigned: data.assigned_count || assigned
       });
+      setTotalCount(data.total_count || 0);
+      setPage(data.page || 1);
+      setPageSize(data.page_size || DEFAULT_PAGE_SIZE);
+      setHasNext(data.has_next || false);
+      setHasPrev(data.has_prev || false);
       setError(null);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    loadRFIDTags(newPage, pageSize);
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPageSize(newPageSize);
+    setPage(1);
+    loadRFIDTags(1, newPageSize);
   };
 
   const getStatusBadge = (status) => {
@@ -279,6 +306,19 @@ export default function RFIDTagsView({ onAssignTag }) {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalCount > 0 && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            hasNext={hasNext}
+            hasPrev={hasPrev}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        )}
       </div>
     </div>
   );

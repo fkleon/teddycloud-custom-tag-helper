@@ -4,6 +4,17 @@
     "loading": "Lädt...",
     "error": "Fehler"
   },
+  "pagination": {
+    "showing": "Zeige",
+    "to": "bis",
+    "of": "von",
+    "items": "Einträgen",
+    "noItems": "Keine Einträge",
+    "perPage": "Pro Seite",
+    "page": "Seite",
+    "previous": "Vorherige Seite",
+    "next": "Nächste Seite"
+  },
   "navigation": {
     "tafFiles": "TAF Dateien",
     "customTonies": "Eigene Tonies",

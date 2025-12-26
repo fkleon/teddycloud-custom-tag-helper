@@ -12,12 +12,21 @@ import { API_URL } from '../config/apiConfig';
 import { useTranslation } from '../hooks/useTranslation';
 import { useTAFLibrary } from '../hooks/useTAFLibrary';
 
+const DEFAULT_PAGE_SIZE = 50;
+
 export default function Dashboard() {
   const { t } = useTranslation();
   const { refresh: refreshTAFLibrary } = useTAFLibrary();
   const [tonies, setTonies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Tonies pagination state
+  const [toniesPage, setToniesPage] = useState(1);
+  const [toniesPageSize, setToniesPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [toniesTotalCount, setToniesTotalCount] = useState(0);
+  const [toniesHasNext, setToniesHasNext] = useState(false);
+  const [toniesHasPrev, setToniesHasPrev] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTonie, setEditingTonie] = useState(null);
   const [selectedTafFile, setSelectedTafFile] = useState(null);
@@ -61,17 +70,36 @@ export default function Dashboard() {
     return () => clearInterval(statusInterval);
   }, []);
 
-  const loadTonies = async () => {
+  const loadTonies = async (page = toniesPage, pageSize = toniesPageSize) => {
     try {
       setLoading(true);
-      const response = await toniesAPI.getAll();
-      setTonies(response.data);
+      const skip = (page - 1) * pageSize;
+      const response = await toniesAPI.getAll(skip, pageSize);
+      const data = response.data;
+
+      setTonies(data.items || []);
+      setToniesTotalCount(data.total_count || 0);
+      setToniesPage(data.page || 1);
+      setToniesPageSize(data.page_size || DEFAULT_PAGE_SIZE);
+      setToniesHasNext(data.has_next || false);
+      setToniesHasPrev(data.has_prev || false);
       setError(null);
     } catch (err) {
       setError(`Failed to load tonies: ${err.message}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleToniesPageChange = (newPage) => {
+    setToniesPage(newPage);
+    loadTonies(newPage, toniesPageSize);
+  };
+
+  const handleToniesPageSizeChange = (newPageSize) => {
+    setToniesPageSize(newPageSize);
+    setToniesPage(1);
+    loadTonies(1, newPageSize);
   };
 
   const loadStatus = async () => {
@@ -293,6 +321,13 @@ export default function Dashboard() {
             tonies={tonies}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            page={toniesPage}
+            pageSize={toniesPageSize}
+            totalCount={toniesTotalCount}
+            hasNext={toniesHasNext}
+            hasPrev={toniesHasPrev}
+            onPageChange={handleToniesPageChange}
+            onPageSizeChange={handleToniesPageSizeChange}
           />
         )}
 

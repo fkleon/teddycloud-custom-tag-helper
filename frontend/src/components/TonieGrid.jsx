@@ -1,6 +1,18 @@
 import TonieCard from './TonieCard';
+import Pagination from './Pagination';
 
-export default function TonieGrid({ tonies, onEdit, onDelete }) {
+export default function TonieGrid({
+  tonies,
+  onEdit,
+  onDelete,
+  page,
+  pageSize,
+  totalCount,
+  hasNext,
+  hasPrev,
+  onPageChange,
+  onPageSizeChange,
+}) {
   if (tonies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -26,15 +38,32 @@ export default function TonieGrid({ tonies, onEdit, onDelete }) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-      {tonies.map((tonie) => (
-        <TonieCard
-          key={tonie.no}
-          tonie={tonie}
-          onEdit={() => onEdit(tonie)}
-          onDelete={() => onDelete(tonie)}
-        />
-      ))}
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+        {tonies.map((tonie) => (
+          <TonieCard
+            key={tonie.no}
+            tonie={tonie}
+            onEdit={() => onEdit(tonie)}
+            onDelete={() => onDelete(tonie)}
+          />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalCount > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            hasNext={hasNext}
+            hasPrev={hasPrev}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

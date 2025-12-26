@@ -2,10 +2,24 @@ import { useState } from 'react';
 import { API_URL } from '../config/apiConfig';
 import { useTAFLibrary } from '../hooks/useTAFLibrary';
 import { useTranslation } from '../hooks/useTranslation';
+import Pagination from './Pagination';
 
 export default function TAFLibrary({ onCreateTonie }) {
   const { t } = useTranslation();
-  const { tafFiles, stats, loading, error, refresh } = useTAFLibrary();
+  const {
+    tafFiles,
+    stats,
+    loading,
+    error,
+    refresh,
+    page,
+    pageSize,
+    totalCount,
+    hasNext,
+    hasPrev,
+    goToPage,
+    changePageSize,
+  } = useTAFLibrary();
   const [filter, setFilter] = useState('all'); // 'all', 'linked', 'orphaned'
 
   const formatFileSize = (bytes) => {
@@ -258,6 +272,19 @@ export default function TAFLibrary({ onCreateTonie }) {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalCount > 0 && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            hasNext={hasNext}
+            hasPrev={hasPrev}
+            onPageChange={goToPage}
+            onPageSizeChange={changePageSize}
+          />
+        )}
       </div>
     </div>
   );
