@@ -5,13 +5,18 @@ import Pagination from './Pagination';
 
 const DEFAULT_PAGE_SIZE = 50;
 
-export default function RFIDTagsView({ onAssignTag }) {
+export default function RFIDTagsView({ onAssignTag, selectedBox: initialSelectedBox }) {
   const { t } = useTranslation();
   const [tags, setTags] = useState([]);
   const [stats, setStats] = useState({ total: 0, unconfigured: 0, assigned: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'assigned', 'unconfigured'
+
+  // Box filtering state
+  const [boxes, setBoxes] = useState([]);
+  const [selectedBoxFilter, setSelectedBoxFilter] = useState(initialSelectedBox || 'all');
+  const [loadingBoxes, setLoadingBoxes] = useState(true);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -20,15 +25,45 @@ export default function RFIDTagsView({ onAssignTag }) {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
 
+  // Load available boxes on mount
+  useEffect(() => {
+    loadBoxes();
+  }, []);
+
+  // Load tags when box filter changes
   useEffect(() => {
     loadRFIDTags();
-  }, []);
+  }, [selectedBoxFilter]);
+
+  const loadBoxes = async () => {
+    try {
+      setLoadingBoxes(true);
+      const response = await fetch(`${API_URL}/api/rfid-tags/tonieboxes`);
+      if (!response.ok) throw new Error('Failed to load boxes');
+      const data = await response.json();
+      setBoxes(data.boxes || []);
+    } catch (err) {
+      console.error('Failed to load boxes:', err);
+      setBoxes([]);
+    } finally {
+      setLoadingBoxes(false);
+    }
+  };
 
   const loadRFIDTags = async (newPage = page, newPageSize = pageSize) => {
     try {
       setLoading(true);
       const skip = (newPage - 1) * newPageSize;
-      const response = await fetch(`${API_URL}/api/rfid-tags/?skip=${skip}&limit=${newPageSize}`);
+
+      // Use box-specific endpoint if a box is selected, otherwise get all tags
+      let url;
+      if (selectedBoxFilter && selectedBoxFilter !== 'all') {
+        url = `${API_URL}/api/rfid-tags/box/${selectedBoxFilter}`;
+      } else {
+        url = `${API_URL}/api/rfid-tags/?skip=${skip}&limit=${newPageSize}`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to load RFID tags');
 
       const data = await response.json();
@@ -94,6 +129,11 @@ export default function RFIDTagsView({ onAssignTag }) {
     return source;
   };
 
+  const getBoxName = (boxId) => {
+    const box = boxes.find(b => b.id === boxId);
+    return box?.name || boxId;
+  };
+
   const filteredTags = tags.filter(tag => {
     if (filter === 'assigned') return tag.status === 'assigned';
     if (filter === 'unconfigured') return tag.status === 'unconfigured';
@@ -131,6 +171,35 @@ export default function RFIDTagsView({ onAssignTag }) {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-colors">
           <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('rfid.statistics.unconfigured')}</div>
           <div className="mt-1 text-3xl font-semibold text-orange-600 dark:text-orange-400">{stats.unconfigured}</div>
+        </div>
+      </div>
+
+      {/* Box Filter Dropdown */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-colors">
+        <div className="flex items-center gap-3">
+          <label htmlFor="box-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {t('rfid.boxFilter.label')}
+          </label>
+          <select
+            id="box-filter"
+            value={selectedBoxFilter}
+            onChange={(e) => {
+              setSelectedBoxFilter(e.target.value);
+              setPage(1);
+            }}
+            disabled={loadingBoxes}
+            className="block w-full max-w-xs rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+          >
+            <option value="all">{t('rfid.boxFilter.allBoxes')}</option>
+            {boxes.map((box) => (
+              <option key={box.id} value={box.id}>
+                {box.name || box.id}
+              </option>
+            ))}
+          </select>
+          {loadingBoxes && (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          )}
         </div>
       </div>
 
@@ -203,8 +272,16 @@ export default function RFIDTagsView({ onAssignTag }) {
                     <div className="text-sm font-medium text-gray-900 dark:text-white font-mono truncate">
                       {tag.uid}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                      {tag.model}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                        {tag.model}
+                      </span>
+                      {/* Show box identifier when viewing all boxes */}
+                      {selectedBoxFilter === 'all' && tag.box_id && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                          {getBoxName(tag.box_id)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

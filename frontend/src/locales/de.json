@@ -37,6 +37,10 @@
       "assigned": "Zugewiesen",
       "unconfigured": "Nicht konfiguriert"
     },
+    "boxFilter": {
+      "label": "Toniebox",
+      "allBoxes": "Alle Boxen"
+    },
     "filters": {
       "all": "Alle",
       "assigned": "Zugewiesen",

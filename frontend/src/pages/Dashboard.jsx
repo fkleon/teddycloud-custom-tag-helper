@@ -336,7 +336,7 @@ export default function Dashboard() {
         )}
 
         {!loading && !error && !showEditor && viewMode === 'rfid' && (
-          <RFIDTagsView onAssignTag={handleSetupTag} />
+          <RFIDTagsView onAssignTag={handleSetupTag} selectedBox={selectedBox} />
         )}
 
         {showEditor && (
