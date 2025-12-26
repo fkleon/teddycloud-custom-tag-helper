@@ -6,6 +6,67 @@ This project has been prepared for public release on GitHub/Forgejo. All persona
 
 ---
 
+## [2.2.4] - 2025-12-26
+
+### Fixed - TAF Statistics Showing Wrong Total Count When Filtering
+
+Fixed an issue where the TAF statistics cards showed incorrect total count when filtering by "Linked" or "Orphaned".
+
+#### Root Cause
+- Backend returned `filtered_total` as `total_count` in API response
+- Frontend used same `total_count` for both statistics display AND pagination
+- When filtering, statistics showed filtered count instead of actual total
+
+#### Solution
+- Added `filtered_count` field to `TAFLibraryResponse` schema for pagination
+- Backend now returns actual `total_count` (unfiltered) for statistics
+- Frontend uses `filtered_count` for pagination, `total_count` for stats
+
+#### Files Changed
+- **backend/app/models/schemas.py** - Added `filtered_count` field to `TAFLibraryResponse`
+- **backend/app/api/taf_library.py** - Return both `total_count` and `filtered_count`
+- **frontend/src/context/TAFLibraryContext.jsx** - Use `filtered_count` for pagination
+
+### Added - German Translations for Settings, StatusBar, and Dashboard
+
+Added missing German translations throughout the application.
+
+#### Translations Added
+- **Settings Dialog** - All labels, buttons, hints now translated
+- **StatusBar** - "Reload TeddyCloud" button and status labels
+- **Dashboard** - Tagline and dark mode toggle tooltips
+- **Footer** - Version label
+
+#### Files Changed
+- **frontend/src/locales/en.json** - Added new translation keys
+- **frontend/src/locales/de.json** - Added German translations
+- **frontend/src/components/SettingsDialog.jsx** - Use translation keys
+- **frontend/src/components/StatusBar.jsx** - Use translation keys
+- **frontend/src/pages/Dashboard.jsx** - Use translation keys
+
+### Added - Version Information in Footer
+
+Version is now displayed in the application footer.
+
+#### Implementation
+- Version sourced from `frontend/package.json`
+- Injected at build time via Vite's `define` feature
+- Available as `__APP_VERSION__` global
+
+#### Files Changed
+- **frontend/vite.config.js** - Read version from package.json, define global
+- **frontend/src/pages/Dashboard.jsx** - Added footer with version display
+- **VERSIONING.md** - Documentation on how to update version
+
+### Changed - Filter Button Order
+
+Re-arranged TAF filter buttons to match statistics card order: All, Linked, Orphaned (was All, Orphaned, Linked).
+
+#### Files Changed
+- **frontend/src/components/TAFLibrary.jsx** - Swapped Linked and Orphaned button positions
+
+---
+
 ## [2.2.3] - 2025-12-26
 
 ### Fixed - TAF Library Filter Not Working with Pagination

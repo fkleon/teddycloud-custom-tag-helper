@@ -46,7 +46,8 @@ export function TAFLibraryProvider({ children }) {
         linked: data.linked_count || 0,
         orphaned: data.orphaned_count || 0,
       });
-      setTotalCount(data.total_count || 0);
+      // Use filtered_count for pagination (number of items matching current filter)
+      setTotalCount(data.filtered_count || data.total_count || 0);
       setPage(data.page || 1);
       setPageSize(data.page_size || DEFAULT_PAGE_SIZE);
       setHasNext(data.has_next || false);

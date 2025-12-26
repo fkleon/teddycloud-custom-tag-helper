@@ -139,7 +139,7 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('settings.title')}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
@@ -160,11 +160,11 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
 
           {/* TeddyCloud Connection */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">TeddyCloud Connection</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('settings.teddycloud.title')}</h3>
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Server URL
+                  {t('settings.teddycloud.serverUrl')}
                 </label>
                 <input
                   type="text"
@@ -179,11 +179,11 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
 
           {/* Application Settings */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Application Settings</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('settings.app.title')}</h3>
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Active Toniebox
+                  {t('settings.app.activeBoxTitle')}
                 </label>
                 <select
                   value={config.app.selected_box || ''}
@@ -191,13 +191,13 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                   disabled={loadingBoxes}
                 >
-                  <option value="">No box selected</option>
+                  <option value="">{t('settings.app.noBoxSelected')}</option>
                   {boxes.map(box => (
                     <option key={box.id} value={box.id}>{box.name} ({box.id})</option>
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Select which Toniebox to monitor for tag setup
+                  {t('settings.app.activeBoxHelp')}
                 </p>
               </div>
 
@@ -247,10 +247,10 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
                     onChange={(e) => setConfig({ ...config, app: { ...config.app, auto_parse_taf: e.target.checked } })}
                     className="mr-2"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-parse TAF metadata</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('settings.app.autoParseTitle')}</span>
                 </label>
                 <p className="mt-1 ml-6 text-xs text-gray-500 dark:text-gray-400">
-                  Automatically extract metadata when selecting TAF files
+                  {t('settings.app.autoParseHelp')}
                 </p>
               </div>
             </div>
@@ -263,7 +263,7 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
               disabled={testing}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {testing ? 'Testing...' : 'Test Connection'}
+              {testing ? t('settings.testing') : t('settings.testConnection')}
             </button>
           </div>
 
@@ -281,14 +281,14 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
             onClick={onClose}
             className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
-            Discard
+            {t('settings.discard')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {saving ? 'Saving...' : 'Save & Restart'}
+            {saving ? t('settings.saving') : t('settings.saveAndRestart')}
           </button>
         </div>
       </div>

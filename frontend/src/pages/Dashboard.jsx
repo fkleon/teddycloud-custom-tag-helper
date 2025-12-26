@@ -237,14 +237,14 @@ export default function Dashboard() {
                   {t('app.title')}
                 </h1>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  Manage your TeddyCloud custom tonies
+                  {t('app.tagline')}
                 </p>
               </div>
               {/* Dark Mode Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
-                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                title={darkMode ? t('darkMode.switchToLight') : t('darkMode.switchToDark')}
               >
                 {darkMode ? (
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -387,6 +387,15 @@ export default function Dashboard() {
           />
         )}
       </main>
+
+      {/* Footer with version info */}
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4 transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+            {t('footer.version')} {__APP_VERSION__}
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

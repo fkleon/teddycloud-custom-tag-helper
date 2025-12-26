@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { API_URL } from '../config/apiConfig';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function StatusBar({ status, onRefresh, onOpenSettings }) {
+  const { t } = useTranslation();
   const [reloading, setReloading] = useState(false);
   const [reloadStatus, setReloadStatus] = useState(null);
 
@@ -25,7 +27,7 @@ export default function StatusBar({ status, onRefresh, onOpenSettings }) {
         setTimeout(() => onRefresh(), 1000);
       }
     } catch (error) {
-      setReloadStatus({ success: false, message: 'Failed to reload TeddyCloud' });
+      setReloadStatus({ success: false, message: t('statusBar.reloadFailed') });
       setTimeout(() => setReloadStatus(null), 3000);
     } finally {
       setReloading(false);
@@ -57,17 +59,17 @@ export default function StatusBar({ status, onRefresh, onOpenSettings }) {
             </button>
 
             <StatusIndicator
-              label="Cloud"
+              label={t('statusBar.cloudLabel')}
               connected={status.teddycloud_connected}
               compact={true}
             />
             <StatusIndicator
-              label="API"
+              label={t('statusBar.apiLabel')}
               connected={status.library_api_connected}
               compact={true}
             />
             <StatusIndicator
-              label="Config"
+              label={t('statusBar.configLabel')}
               connected={status.config_readable}
               compact={true}
             />
@@ -78,7 +80,7 @@ export default function StatusBar({ status, onRefresh, onOpenSettings }) {
             onClick={handleReloadTeddyCloud}
             disabled={reloading}
             className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
-            title="Reload TeddyCloud configuration"
+            title={t('statusBar.reloadTitle')}
           >
             {reloading ? (
               <>
@@ -86,14 +88,14 @@ export default function StatusBar({ status, onRefresh, onOpenSettings }) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Reloading...
+                {t('statusBar.reloading')}
               </>
             ) : (
               <>
                 <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Reload TeddyCloud
+                {t('statusBar.reloadTeddyCloud')}
               </>
             )}
           </button>
@@ -120,15 +122,15 @@ export default function StatusBar({ status, onRefresh, onOpenSettings }) {
             </button>
 
             <StatusIndicator
-              label="TeddyCloud"
+              label={t('statusBar.teddycloudLabel')}
               connected={status.teddycloud_connected}
             />
             <StatusIndicator
-              label="Library API"
+              label={t('statusBar.libraryApiLabel')}
               connected={status.library_api_connected}
             />
             <StatusIndicator
-              label="Config"
+              label={t('statusBar.configLabel')}
               connected={status.config_readable}
             />
           </div>
@@ -142,7 +144,7 @@ export default function StatusBar({ status, onRefresh, onOpenSettings }) {
             onClick={handleReloadTeddyCloud}
             disabled={reloading}
             className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
-            title="Reload TeddyCloud configuration"
+            title={t('statusBar.reloadTitle')}
           >
             {reloading ? (
               <>
@@ -150,14 +152,14 @@ export default function StatusBar({ status, onRefresh, onOpenSettings }) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Reloading...
+                {t('statusBar.reloading')}
               </>
             ) : (
               <>
                 <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Reload TeddyCloud
+                {t('statusBar.reloadTeddyCloud')}
               </>
             )}
           </button>

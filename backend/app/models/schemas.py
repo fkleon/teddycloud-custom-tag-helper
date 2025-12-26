@@ -161,9 +161,10 @@ class TAFFileWithTonie(BaseModel):
 class TAFLibraryResponse(BaseModel):
     """Response for TAF-centric library view with pagination"""
     taf_files: List[TAFFileWithTonie] = Field(description="TAF files for current page")
-    total_count: int = Field(description="Total number of TAF files")
+    total_count: int = Field(description="Total number of TAF files (unfiltered)")
     linked_count: int = Field(description="Number of TAF files linked to tonies")
     orphaned_count: int = Field(description="Number of TAF files not linked to any tonie")
+    filtered_count: int = Field(default=0, description="Number of TAF files after applying filter (for pagination)")
     # Pagination fields
     page: int = Field(default=1, description="Current page number (1-indexed)")
     page_size: int = Field(default=50, description="Number of items per page")

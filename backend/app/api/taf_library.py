@@ -254,9 +254,10 @@ async def get_taf_library(
 
         return TAFLibraryResponse(
             taf_files=paginated_files,
-            total_count=filtered_total,
+            total_count=total_count,
             linked_count=linked_count,
             orphaned_count=orphaned_count,
+            filtered_count=filtered_total,
             page=page,
             page_size=limit,
             has_next=has_next,

@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "TeddyCloud Custom Tag Helper",
+    "tagline": "Verwalte deine eigenen TeddyCloud Tonies",
     "loading": "Lädt...",
     "error": "Fehler"
   },
@@ -78,19 +79,20 @@
     "teddycloud": {
       "title": "TeddyCloud Verbindung",
       "url": "TeddyCloud URL",
+      "serverUrl": "Server URL",
       "urlHelp": "Basis-URL Ihrer TeddyCloud Instanz",
       "timeout": "Timeout (Sekunden)"
     },
     "app": {
       "title": "Anwendungseinstellungen",
       "autoParseTitle": "TAF Metadaten automatisch extrahieren",
-      "autoParseHelp": "Metadaten automatisch beim Auswählen einer TAF Datei extrahieren",
+      "autoParseHelp": "Metadaten automatisch beim Auswählen von TAF Dateien extrahieren",
       "defaultLanguageTitle": "Standardsprache",
       "defaultLanguageHelp": "Standardsprache für neue Tonies",
       "uiLanguageTitle": "Sprache",
       "uiLanguageHelp": "Sprache der Benutzeroberfläche",
       "activeBoxTitle": "Aktive Toniebox",
-      "activeBoxHelp": "Wählen Sie die zu verwaltende Toniebox",
+      "activeBoxHelp": "Wählen Sie die Toniebox für die Tag-Einrichtung",
       "noBoxSelected": "Keine Box ausgewählt"
     },
     "languages": {
@@ -103,8 +105,12 @@
     "saveSuccess": "Einstellungen erfolgreich gespeichert!",
     "saveError": "Fehler beim Speichern der Einstellungen",
     "testConnection": "Verbindung testen",
+    "testing": "Teste...",
     "testSuccess": "Verbindung erfolgreich!",
-    "testError": "Verbindung fehlgeschlagen"
+    "testError": "Verbindung fehlgeschlagen",
+    "discard": "Verwerfen",
+    "saveAndRestart": "Speichern & Neustarten",
+    "saving": "Speichere..."
   },
   "tonieEditor": {
     "createTitle": "Eigenen Tonie erstellen",
@@ -175,5 +181,23 @@
     "showLess": "← Weniger anzeigen",
     "showAll": "Alle {{count}} Cover anzeigen →",
     "noCoversFound": "Keine Cover gefunden. Versuchen Sie eine eigene Suche oben."
+  },
+  "statusBar": {
+    "reloadTeddyCloud": "TeddyCloud neu laden",
+    "reloading": "Lädt neu...",
+    "reloadTitle": "TeddyCloud Konfiguration neu laden",
+    "reloadFailed": "TeddyCloud konnte nicht neu geladen werden",
+    "cloudLabel": "Cloud",
+    "apiLabel": "API",
+    "configLabel": "Konfig",
+    "teddycloudLabel": "TeddyCloud",
+    "libraryApiLabel": "Bibliothek API"
+  },
+  "darkMode": {
+    "switchToLight": "Zum hellen Modus wechseln",
+    "switchToDark": "Zum dunklen Modus wechseln"
+  },
+  "footer": {
+    "version": "Version"
   }
 }

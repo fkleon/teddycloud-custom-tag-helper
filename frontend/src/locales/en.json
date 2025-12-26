@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "TeddyCloud Custom Tag Helper",
+    "tagline": "Manage your TeddyCloud custom tonies",
     "loading": "Loading...",
     "error": "Error"
   },
@@ -78,19 +79,20 @@
     "teddycloud": {
       "title": "TeddyCloud Connection",
       "url": "TeddyCloud URL",
+      "serverUrl": "Server URL",
       "urlHelp": "Base URL of your TeddyCloud instance",
       "timeout": "Timeout (seconds)"
     },
     "app": {
       "title": "Application Settings",
       "autoParseTitle": "Auto-parse TAF metadata",
-      "autoParseHelp": "Automatically extract metadata when selecting a TAF file",
+      "autoParseHelp": "Automatically extract metadata when selecting TAF files",
       "defaultLanguageTitle": "Default Language",
       "defaultLanguageHelp": "Default language for new tonies",
       "uiLanguageTitle": "UI Language",
       "uiLanguageHelp": "Language for the user interface",
       "activeBoxTitle": "Active Toniebox",
-      "activeBoxHelp": "Select the Toniebox to manage",
+      "activeBoxHelp": "Select which Toniebox to monitor for tag setup",
       "noBoxSelected": "No box selected"
     },
     "languages": {
@@ -103,8 +105,12 @@
     "saveSuccess": "Settings saved successfully!",
     "saveError": "Failed to save settings",
     "testConnection": "Test Connection",
+    "testing": "Testing...",
     "testSuccess": "Connection successful!",
-    "testError": "Connection failed"
+    "testError": "Connection failed",
+    "discard": "Discard",
+    "saveAndRestart": "Save & Restart",
+    "saving": "Saving..."
   },
   "tonieEditor": {
     "createTitle": "Create Custom Tonie",
@@ -175,5 +181,23 @@
     "showLess": "← Show less",
     "showAll": "Show all {{count}} covers →",
     "noCoversFound": "No covers found. Try a custom search above."
+  },
+  "statusBar": {
+    "reloadTeddyCloud": "Reload TeddyCloud",
+    "reloading": "Reloading...",
+    "reloadTitle": "Reload TeddyCloud configuration",
+    "reloadFailed": "Failed to reload TeddyCloud",
+    "cloudLabel": "Cloud",
+    "apiLabel": "API",
+    "configLabel": "Config",
+    "teddycloudLabel": "TeddyCloud",
+    "libraryApiLabel": "Library API"
+  },
+  "darkMode": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
+  "footer": {
+    "version": "Version"
   }
 }
