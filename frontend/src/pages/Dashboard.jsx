@@ -392,7 +392,15 @@ export default function Dashboard() {
       <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            {t('footer.version')} {__APP_VERSION__}
+            {t('footer.version')}{' '}
+            <a
+              href="https://github.com/Basti-Fantasti/teddycloud-custom-tag-helper"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+            >
+              {__APP_VERSION__}
+            </a>
           </p>
         </div>
       </footer>
