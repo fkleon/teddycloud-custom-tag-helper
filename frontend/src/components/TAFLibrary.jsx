@@ -2,9 +2,8 @@ import { API_URL } from '../config/apiConfig';
 import { useTAFLibrary } from '../hooks/useTAFLibrary';
 import { useTranslation } from '../hooks/useTranslation';
 import Pagination from './Pagination';
-import BatchSelectionToolbar from './BatchSelectionToolbar';
 
-export default function TAFLibrary({ onCreateTonie, onBatchProcess }) {
+export default function TAFLibrary({ onCreateTonie }) {
   const { t } = useTranslation();
   const {
     tafFiles,
@@ -21,10 +20,6 @@ export default function TAFLibrary({ onCreateTonie, onBatchProcess }) {
     changePageSize,
     filter,
     setFilter,
-    // Batch selection
-    toggleSelection,
-    isSelected,
-    selectedCount,
   } = useTAFLibrary();
 
   const formatFileSize = (bytes) => {
@@ -97,9 +92,6 @@ export default function TAFLibrary({ onCreateTonie, onBatchProcess }) {
         </div>
       </div>
 
-      {/* Batch Selection Toolbar */}
-      <BatchSelectionToolbar onBatchProcess={onBatchProcess} />
-
       {/* Filter Tabs */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
         <div className="border-b border-gray-200 dark:border-gray-700">
@@ -148,18 +140,6 @@ export default function TAFLibrary({ onCreateTonie, onBatchProcess }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:divide-x divide-gray-200 dark:divide-gray-700">
                 {/* Left Half: TAF File Info */}
                 <div className="px-4 py-3 flex items-start gap-3">
-                  {/* Checkbox for unlinked files */}
-                  {!file.is_linked && (
-                    <div className="flex-shrink-0 flex items-center h-8">
-                      <input
-                        type="checkbox"
-                        checked={isSelected(file.path)}
-                        onChange={() => toggleSelection(file.path)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded cursor-pointer"
-                        aria-label={t('batch.selectFile')}
-                      />
-                    </div>
-                  )}
                   {/* Icon */}
                   <div className="flex-shrink-0">
                     {file.is_linked ? (

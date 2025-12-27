@@ -171,7 +171,6 @@ Backups are created at: `/data/config/tonies.custom.backup.*.json`
 ## Next Steps
 
 - **Edit existing tonies**: Click any tonie card
-- **Batch operations**: Create multiple tonies from library
 - **Cover management**: Upload custom artwork
 - **RFID organization**: Link all your custom tags
 

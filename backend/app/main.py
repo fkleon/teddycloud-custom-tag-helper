@@ -8,9 +8,9 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .config import get_settings, Settings
+from .config import get_settings, Settings, get_env_sourced_keys
 from .models.schemas import StatusResponse
-from .api import tonies, library, uploads, taf_library, images, taf_metadata, rfid_tags, setup, batch
+from .api import tonies, library, uploads, taf_library, images, taf_metadata, rfid_tags, setup
 from .services.tonies_manager import ToniesManager
 from .services.teddycloud_client import TeddyCloudClient
 
@@ -52,7 +52,6 @@ app.include_router(images.router, prefix="/api")
 app.include_router(taf_metadata.router, prefix="/api")
 app.include_router(rfid_tags.router, prefix="/api")
 app.include_router(setup.router, prefix="/api")
-app.include_router(batch.router, prefix="/api")
 
 
 @app.get("/")
@@ -116,8 +115,9 @@ async def get_config(settings: Settings = Depends(get_settings)):
     Get application configuration
 
     Returns:
-        Configuration settings
+        Configuration settings including which values are set via environment variables
     """
+    env_sources = get_env_sourced_keys()
     return {
         "teddycloud": {
             "url": settings.teddycloud.url,
@@ -127,7 +127,8 @@ async def get_config(settings: Settings = Depends(get_settings)):
             "auto_parse_taf": settings.app.auto_parse_taf,
             "default_language": settings.app.default_language,
             "selected_box": settings.app.selected_box
-        }
+        },
+        "_env_sources": list(env_sources)  # Keys that were set via environment variables
     }
 
 
@@ -141,6 +142,9 @@ async def update_config(config_data: dict):
 
     Returns:
         Success status
+
+    Note:
+        Values set via environment variables are preserved and not overwritten.
     """
     import yaml
     from pathlib import Path
@@ -148,10 +152,11 @@ async def update_config(config_data: dict):
 
     try:
         config_file = Path("/config/config.yaml")
+        env_sources = get_env_sourced_keys()
 
         # Read current config
         with open(config_file) as f:
-            config = yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
 
         # Legacy cleanup - migrate old config structure to new simplified one (pre-v1.1)
         if "volumes" in config:
@@ -171,11 +176,24 @@ async def update_config(config_data: dict):
             del config["smb"]
             logger.info("Removed deprecated SMB section from config during save")
 
-        # Update config with new values
+        # Update config with new values, but skip env-sourced values
         if "teddycloud" in config_data:
-            config.setdefault("teddycloud", {}).update(config_data["teddycloud"])
+            config.setdefault("teddycloud", {})
+            for key, value in config_data["teddycloud"].items():
+                env_key = f"teddycloud.{key}"
+                if env_key in env_sources:
+                    logger.debug(f"Skipping {env_key} - set via environment variable")
+                else:
+                    config["teddycloud"][key] = value
+
         if "app" in config_data:
-            config.setdefault("app", {}).update(config_data["app"])
+            config.setdefault("app", {})
+            for key, value in config_data["app"].items():
+                env_key = f"app.{key}"
+                if env_key in env_sources:
+                    logger.debug(f"Skipping {env_key} - set via environment variable")
+                else:
+                    config["app"][key] = value
 
         # Migrate existing configs: add setup_completed flag if missing
         # This prevents the setup wizard from showing on container restarts
@@ -193,7 +211,12 @@ async def update_config(config_data: dict):
         config_module._settings = load_config()
 
         logger.info("Configuration updated and reloaded successfully")
-        return {"status": "success", "message": "Configuration updated"}
+        skipped = [k for k in env_sources if any(k.startswith(p) for p in ['teddycloud.', 'app.'])]
+        return {
+            "status": "success",
+            "message": "Configuration updated",
+            "env_preserved": skipped  # Inform client which values were preserved
+        }
 
     except Exception as e:
         logger.error(f"Failed to update configuration: {e}")
