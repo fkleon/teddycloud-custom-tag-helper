@@ -98,6 +98,59 @@ Fixed an issue where the settings dialog did not properly display or protect val
 
 ---
 
+### Fixed - Configuration Priority and Environment Variable Handling
+
+Fixed multiple issues with configuration loading and the setup wizard not using the correct values.
+
+#### Issues Fixed
+
+**1. Config.yaml values were overridden by environment variables**
+- Environment variables had higher priority than config.yaml
+- Users couldn't override env vars by editing config.yaml
+- **Fix**: Changed priority so config.yaml wins over env vars (if config has non-default value)
+
+**2. Settings dialog disabled env-sourced fields**
+- Fields set via environment variables were read-only
+- Users couldn't override them in the UI
+- **Fix**: Fields are now editable with an info message explaining that config.yaml takes priority
+
+**3. Pydantic rejected setup_completed field**
+- `setup_completed` flag was in config.yaml but not in Settings model
+- Caused "Extra inputs are not permitted" error
+- Config loading failed silently, falling back to defaults
+- **Fix**: Added `setup_completed: bool = False` to Settings model
+
+**4. Setup wizard showed hardcoded defaults**
+- Setup wizard always showed `http://docker` instead of configured URL
+- Initial state was hardcoded, not loaded from backend
+- **Fix**: Added `loadExistingConfig()` that fetches `/api/config` on mount
+
+**5. Setup wizard didn't find Tonieboxes**
+- Box selection step showed "No Tonieboxes found"
+- Was calling TeddyCloud's `/api/tonieboxes` with wrong format
+- **Fix**: Now uses backend's `/api/rfid-tags/tonieboxes` (same as Settings dialog)
+
+#### Technical Details
+
+**Config Loading Priority (New)**:
+1. config.yaml (if non-default value) - highest
+2. Environment variables (if config.yaml has default/missing)
+3. Default values - lowest
+
+**Extensive Logging Added**:
+- Config loading now logs all sources and final values
+- Helps debug configuration issues
+
+#### Files Changed
+- **Modified**: `backend/app/config.py` - New priority logic, added `setup_completed` field, extensive logging
+- **Modified**: `backend/app/main.py` - Allow saving env-sourced values, add `setup_completed` migration
+- **Modified**: `frontend/src/components/SettingsDialog.jsx` - Enable editing env-sourced fields
+- **Modified**: `frontend/src/components/SetupWizard.jsx` - Load config and boxes from backend
+- **Modified**: `frontend/src/locales/en.json` - Added `envVarInfo` translation
+- **Modified**: `frontend/src/locales/de.json` - Added German `envVarInfo` translation
+
+---
+
 ## [2.2.4] - 2025-12-26
 
 ### Fixed - TAF Statistics Showing Wrong Total Count When Filtering
