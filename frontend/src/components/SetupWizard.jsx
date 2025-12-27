@@ -45,6 +45,31 @@ const SetupWizard = ({ onComplete }) => {
     detectDataAccess();
   }, []);
 
+  // Load boxes when entering step 4 (box selection)
+  useEffect(() => {
+    if (step === 4 && boxes.length === 0) {
+      loadBoxes();
+    }
+  }, [step]);
+
+  const loadBoxes = async () => {
+    try {
+      console.log('Loading Tonieboxes from backend...');
+      const response = await fetch(`${API_URL}/api/rfid-tags/tonieboxes`);
+      const data = await response.json();
+      console.log('Loaded boxes:', data);
+      if (data.boxes && data.boxes.length > 0) {
+        setBoxes(data.boxes);
+        // Auto-select if only one box
+        if (data.boxes.length === 1) {
+          setConfig(prev => ({ ...prev, selected_box: data.boxes[0].id }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load Tonieboxes:', err);
+    }
+  };
+
   const loadExistingConfig = async () => {
     try {
       const response = await fetch(`${API_URL}/api/config`);
