@@ -178,6 +178,18 @@ TeddyCloud API returns filenames with non-UTF-8 encoding (Latin-1) for special c
 
 ---
 
+### Fixed - Settings Save Returns 500 Error
+
+Fixed a bug where saving settings in the UI caused a 500 Internal Server Error.
+
+#### Root Cause
+The `update_config` endpoint used `env_sources` variable without defining it first (missing call to `get_env_sourced_keys()`).
+
+#### Files Changed
+- **Modified**: `backend/app/main.py` - Added missing `get_env_sourced_keys()` call in `update_config`
+
+---
+
 ## [2.2.4] - 2025-12-26
 
 ### Fixed - TAF Statistics Showing Wrong Total Count When Filtering

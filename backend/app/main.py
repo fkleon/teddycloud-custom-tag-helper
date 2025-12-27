@@ -209,6 +209,7 @@ async def update_config(config_data: dict):
         config_module._settings = load_config()
 
         logger.info("Configuration updated and reloaded successfully")
+        env_sources = get_env_sourced_keys()
         skipped = [k for k in env_sources if any(k.startswith(p) for p in ['teddycloud.', 'app.'])]
         return {
             "status": "success",
