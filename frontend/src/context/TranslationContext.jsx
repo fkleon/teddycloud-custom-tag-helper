@@ -7,7 +7,7 @@ import de from '../locales/de.json';
 // Available translations
 const translations = {
   en,
-  de
+  de,
 };
 
 // Supported languages

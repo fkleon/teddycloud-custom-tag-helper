@@ -43,10 +43,10 @@ export default function TagSetupDialog({ isOpen, onClose, availableTag, onSucces
           series: filename.replace('.taf', '').replace(/_/g, ' '),
           episodes: filename.replace('.taf', '').replace(/_/g, ' '),
           tracks: [],
-          release: "0",
-          language: "de-de",
-          category: "custom",
-          pic: ""
+          release: '0',
+          language: 'de-de',
+          category: 'custom',
+          pic: '',
         };
         await toniesAPI.create(newTonie);
       }
@@ -61,8 +61,8 @@ export default function TagSetupDialog({ isOpen, onClose, availableTag, onSucces
           tag_uid: availableTag.uid,
           box_id: availableTag.box_id,
           model: modelNumber,
-          taf_path: tafPath
-        })
+          taf_path: tafPath,
+        }),
       });
 
       if (!linkResponse.ok) {
@@ -91,7 +91,7 @@ export default function TagSetupDialog({ isOpen, onClose, availableTag, onSucces
       return data.next_model_number;
     } catch (err) {
       console.error('Failed to get next model number:', err);
-      return "900001";
+      return '900001';
     }
   };
 

@@ -7,7 +7,7 @@ export default function CoverSelector({
   confidence,
   searchTerm,
   onSelectCover,
-  selectedCoverUrl
+  selectedCoverUrl,
 }) {
   const [showAllCovers, setShowAllCovers] = useState(false);
   const [customSearch, setCustomSearch] = useState(searchTerm || '');
@@ -23,7 +23,7 @@ export default function CoverSelector({
       const response = await fetch(`${API_URL}/api/taf-metadata/search-covers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ search_term: customSearch, limit: 10 })
+        body: JSON.stringify({ search_term: customSearch, limit: 10 }),
       });
 
       if (!response.ok) throw new Error('Search failed');

@@ -128,7 +128,7 @@ export default function Dashboard() {
       // Fetch config and available boxes in parallel
       const [configResponse, boxesResponse] = await Promise.all([
         fetch(`${API_URL}/api/config`),
-        fetch(`${API_URL}/api/rfid-tags/tonieboxes`)
+        fetch(`${API_URL}/api/rfid-tags/tonieboxes`),
       ]);
 
       const configData = await configResponse.json();
@@ -148,8 +148,8 @@ export default function Dashboard() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ...configData,
-              app: { ...configData.app, selected_box: currentSelectedBox }
-            })
+              app: { ...configData.app, selected_box: currentSelectedBox },
+            }),
           });
         } catch (saveErr) {
           console.warn('Failed to persist auto-selected box:', saveErr);

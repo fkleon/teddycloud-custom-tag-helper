@@ -1,34 +1,34 @@
-import { useState, useEffect } from 'react'
-import { TranslationProvider } from './context/TranslationContext'
-import { TAFLibraryProvider } from './context/TAFLibraryContext'
-import Dashboard from './pages/Dashboard'
-import SetupWizard from './components/SetupWizard'
-import ErrorBoundary from './components/ErrorBoundary'
-import { setupAPI } from './api/client'
+import { useState, useEffect } from 'react';
+import { TranslationProvider } from './context/TranslationContext';
+import { TAFLibraryProvider } from './context/TAFLibraryContext';
+import Dashboard from './pages/Dashboard';
+import SetupWizard from './components/SetupWizard';
+import ErrorBoundary from './components/ErrorBoundary';
+import { setupAPI } from './api/client';
 
 function App() {
-  const [setupRequired, setSetupRequired] = useState(null) // null = checking, true = show wizard, false = show dashboard
-  const [checking, setChecking] = useState(true)
+  const [setupRequired, setSetupRequired] = useState(null); // null = checking, true = show wizard, false = show dashboard
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    checkSetupStatus()
-  }, [])
+    checkSetupStatus();
+  }, []);
 
   const checkSetupStatus = async () => {
     try {
-      const response = await setupAPI.checkStatus()
-      setSetupRequired(response.data.setup_required)
+      const response = await setupAPI.checkStatus();
+      setSetupRequired(response.data.setup_required);
     } catch (error) {
       // If check fails, assume setup is needed
-      setSetupRequired(true)
+      setSetupRequired(true);
     }
-    setChecking(false)
-  }
+    setChecking(false);
+  };
 
   const handleSetupComplete = () => {
     // Reload the page to reinitialize with new config
-    window.location.reload()
-  }
+    window.location.reload();
+  };
 
   if (checking) {
     return (
@@ -38,7 +38,7 @@ function App() {
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (setupRequired) {
@@ -46,7 +46,7 @@ function App() {
       <TranslationProvider>
         <SetupWizard onComplete={handleSetupComplete} />
       </TranslationProvider>
-    )
+    );
   }
 
   return (
@@ -61,7 +61,7 @@ function App() {
         </TAFLibraryProvider>
       </TranslationProvider>
     </ErrorBoundary>
-  )
+  );
 }
 
-export default App
+export default App;

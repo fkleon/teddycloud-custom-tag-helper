@@ -16,7 +16,7 @@ export default function StatusBar({ status, onRefresh, onOpenSettings }) {
     setReloadStatus(null);
     try {
       const response = await fetch(`${API_URL}/api/reload-teddycloud`, {
-        method: 'POST'
+        method: 'POST',
       });
       const data = await response.json();
       setReloadStatus({ success: true, message: data.message });

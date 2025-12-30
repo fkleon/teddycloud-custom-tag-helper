@@ -6,7 +6,7 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
   const { t, language, setLanguage } = useTranslation();
   const [config, setConfig] = useState({
     teddycloud: { url: '', timeout: 30 },
-    app: { auto_parse_taf: true, default_language: 'de-de', selected_box: null }
+    app: { auto_parse_taf: true, default_language: 'de-de', selected_box: null },
   });
   const [initialConfig, setInitialConfig] = useState(null);
   const [envSources, setEnvSources] = useState([]);  // Keys set via environment variables
@@ -69,7 +69,7 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
       const response = await fetch(`${API_URL}/api/test-connection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
+        body: JSON.stringify(config),
       });
 
       const results = await response.json();
@@ -94,7 +94,7 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
       const saveResponse = await fetch(`${API_URL}/api/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
+        body: JSON.stringify(config),
       });
 
       if (!saveResponse.ok) {
@@ -128,7 +128,7 @@ export default function SettingsDialog({ isOpen, onClose, onConfigChange }) {
         if (onConfigChange) {
           onConfigChange({
             selectedBox: config.app.selected_box,
-            defaultLanguage: config.app.default_language
+            defaultLanguage: config.app.default_language,
           });
         }
         onClose();
@@ -327,14 +327,14 @@ function TestResult({ label, result }) {
     success: 'bg-green-50 border-green-200 text-green-800',
     error: 'bg-red-50 border-red-200 text-red-800',
     disabled: 'bg-gray-50 border-gray-200 text-gray-600',
-    unknown: 'bg-gray-50 border-gray-200 text-gray-600'
+    unknown: 'bg-gray-50 border-gray-200 text-gray-600',
   };
 
   const statusIcons = {
     success: '✓',
     error: '✗',
     disabled: '○',
-    unknown: '?'
+    unknown: '?',
   };
 
   return (

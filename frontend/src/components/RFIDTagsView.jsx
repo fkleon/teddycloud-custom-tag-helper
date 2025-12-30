@@ -82,7 +82,7 @@ export default function RFIDTagsView({ onAssignTag, selectedBox: initialSelected
       setStats({
         total: data.total_count || filteredTags.length,
         unconfigured: data.unconfigured_count || unconfigured,
-        assigned: data.assigned_count || assigned
+        assigned: data.assigned_count || assigned,
       });
       setTotalCount(data.total_count || 0);
       setPage(data.page || 1);
@@ -111,7 +111,7 @@ export default function RFIDTagsView({ onAssignTag, selectedBox: initialSelected
   const getStatusBadge = (status) => {
     const badges = {
       assigned: 'bg-green-100 text-green-800',
-      unconfigured: 'bg-orange-100 text-orange-800'
+      unconfigured: 'bg-orange-100 text-orange-800',
     };
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badges[status]}`}>

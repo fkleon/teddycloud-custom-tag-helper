@@ -26,7 +26,7 @@ export default function TagStatusField({ selectedBox, onSetupTag }) {
         const tagsData = await tagsResponse.json();
 
         const eligibleTag = tagsData.tags.find(tag =>
-          tag.status === 'unconfigured' || tag.status === 'unassigned'
+          tag.status === 'unconfigured' || tag.status === 'unassigned',
         );
 
         setTagInfo({
@@ -35,7 +35,7 @@ export default function TagStatusField({ selectedBox, onSetupTag }) {
           totalTags: tagsData.total_count,
           unconfigured: tagsData.unconfigured_count,
           unassigned: tagsData.unassigned_count,
-          assigned: tagsData.assigned_count
+          assigned: tagsData.assigned_count,
         });
         return;
       }
@@ -46,12 +46,12 @@ export default function TagStatusField({ selectedBox, onSetupTag }) {
 
       // Find the tag with matching RUID
       const activeTag = tagsData.tags.find(tag =>
-        tag.uid.toLowerCase() === lastRuid.trim().toLowerCase()
+        tag.uid.toLowerCase() === lastRuid.trim().toLowerCase(),
       );
 
       // Find unconfigured tags for setup button
       const eligibleTag = tagsData.tags.find(tag =>
-        tag.status === 'unconfigured' || tag.status === 'unassigned'
+        tag.status === 'unconfigured' || tag.status === 'unassigned',
       );
 
       setTagInfo({
@@ -60,7 +60,7 @@ export default function TagStatusField({ selectedBox, onSetupTag }) {
         totalTags: tagsData.total_count,
         unconfigured: tagsData.unconfigured_count,
         unassigned: tagsData.unassigned_count,
-        assigned: tagsData.assigned_count
+        assigned: tagsData.assigned_count,
       });
     } catch (err) {
       console.error('Failed to load tag status:', err);
