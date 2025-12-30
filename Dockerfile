@@ -1,5 +1,5 @@
 # Multi-stage build: Frontend + Backend in one container
-FROM node:18-alpine AS frontend-build
+FROM node:24-alpine AS frontend-build
 
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
@@ -9,7 +9,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Final stage: Python backend with nginx for frontend
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Install nginx and required packages (including curl for health checks)
 RUN apt-get update && apt-get install -y \
