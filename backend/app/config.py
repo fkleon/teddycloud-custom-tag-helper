@@ -101,7 +101,7 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-def load_config(config_path: str = "/config/config.yaml") -> Settings:
+def load_config(config_path: Path) -> Settings:
     """
     Load configuration from YAML file and environment variables
 
@@ -133,7 +133,7 @@ def load_config(config_path: str = "/config/config.yaml") -> Settings:
     logger.info(f"Environment TEDDYCLOUD_DATA_PATH: {env_data_path or '(not set)'}")
 
     # Load from YAML if it exists
-    config_file = Path(config_path)
+    config_file = config_path
     logger.info(f"Looking for config file at: {config_path}")
 
     if config_file.exists():
@@ -229,12 +229,15 @@ def get_env_sourced_keys() -> Set[str]:
 # Global settings instance
 _settings: Optional[Settings] = None
 
+def get_config_path() -> Path:
+    return Path(os.getenv('CONFIG_PATH', "/config/config.yaml"))
+
 
 def get_settings() -> Settings:
     """Get or initialize global settings instance"""
     global _settings
     if _settings is None:
-        _settings = load_config()
+        _settings = load_config(get_config_path())
         # Configure logging
         logging.basicConfig(
             level=getattr(logging, _settings.advanced.log_level),

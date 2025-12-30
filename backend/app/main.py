@@ -150,10 +150,10 @@ async def update_config(config_data: dict):
     """
     import yaml
     from pathlib import Path
-    from .config import load_config
+    from .config import load_config, get_config_path
 
     try:
-        config_file = Path("/config/config.yaml")
+        config_file = get_config_path()
 
         # Read current config
         with open(config_file) as f:

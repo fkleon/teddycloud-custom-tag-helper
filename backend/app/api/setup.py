@@ -10,7 +10,7 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
-from ..config import get_settings, Settings
+from ..config import get_settings, get_config_path, Settings
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ async def check_setup_status(settings: Settings = Depends(get_settings)):
         SetupStatus with setup_required flag
     """
     try:
-        config_file = Path("/config/config.yaml")
+        config_file = get_config_path()
 
         # Check if config.yaml exists and is configured
         if not config_file.exists():
@@ -275,7 +275,7 @@ async def save_configuration(config: SetupConfiguration):
             config_data["app"]["selected_box"] = config.selected_box
         
         # Write to config.yaml in persistent volume
-        config_file = Path("/config/config.yaml")
+        config_file = get_config_path()
         config_file.parent.mkdir(parents=True, exist_ok=True)
         with open(config_file, 'w') as f:
             yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
